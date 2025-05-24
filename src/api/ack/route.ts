@@ -1,34 +1,24 @@
 
-import { NextRequest, NextResponse } from 'next/server'
-import { rpcFunctions } from '@/lib/supabaseClient'
-
-export async function POST(request: NextRequest) {
+// Simple API function for acknowledge endpoint
+export async function ackIncident(incidentId: string, etaMinutes?: number) {
   try {
-    const { incidentId, etaMinutes } = await request.json()
-
-    if (!incidentId) {
-      return NextResponse.json(
-        { error: 'Incident ID is required' },
-        { status: 400 }
-      )
-    }
-
     console.log(`Acknowledging incident: ${incidentId}, ETA: ${etaMinutes} minutes`)
 
-    // Call Supabase RPC to acknowledge incident
-    const result = await rpcFunctions.ackIncident(incidentId, etaMinutes)
-
-    return NextResponse.json({ 
-      success: true,
-      message: 'Incident acknowledged',
-      data: result 
+    // This would normally be handled by a backend API
+    // For now, we'll simulate the API call
+    const response = await fetch('/api/ack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ incidentId, etaMinutes })
     })
 
+    if (!response.ok) {
+      throw new Error('Failed to acknowledge incident')
+    }
+
+    return await response.json()
   } catch (error) {
     console.error('Acknowledge API error:', error)
-    return NextResponse.json(
-      { error: 'Failed to acknowledge incident' },
-      { status: 500 }
-    )
+    throw error
   }
 }

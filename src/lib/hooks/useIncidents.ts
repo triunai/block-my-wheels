@@ -36,7 +36,7 @@ export const useNotifyDriver = () => {
   
   return useMutation({
     mutationFn: ({ token, rage }: { token: string; rage?: number }) => 
-      rpcFunctions.notifyDriver(token, rage),
+      rpcFunctions.notifyDriver(token, rage || 0),
     onSuccess: (_, { token }) => {
       queryClient.invalidateQueries({ queryKey: ['scanPage', token] })
     },

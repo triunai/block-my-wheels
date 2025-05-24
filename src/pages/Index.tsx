@@ -1,8 +1,7 @@
-
 'use client'
 
 import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -13,12 +12,12 @@ import { StickerGenerator } from './StickerGenerator'
 import { AdminDashboard } from './AdminDashboard'
 
 export default function Index() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const token = searchParams?.get('token')
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const token = searchParams.get('token')
   
   // Simple routing based on URL parameters
-  const page = searchParams?.get('page')
+  const page = searchParams.get('page')
   
   // If we have a token, show the scan page
   if (token) {
@@ -39,10 +38,10 @@ export default function Index() {
 }
 
 function LandingPage() {
-  const router = useRouter()
+  const navigate = useNavigate()
 
   const handleNavigation = (page: string) => {
-    router.push(`/?page=${page}`)
+    navigate(`/?page=${page}`)
   }
 
   return (
