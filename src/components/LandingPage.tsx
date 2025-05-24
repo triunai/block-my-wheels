@@ -11,7 +11,7 @@ export function LandingPage() {
   const navigate = useNavigate()
 
   const handleNavigation = (page: string) => {
-    navigate(`/?page=${page}`)
+    navigate(`/${page}`)
   }
 
   return (
