@@ -16,10 +16,10 @@ export function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-black dark:via-gray-900 dark:to-orange-950">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950">
       {/* Template Mode Banner */}
       {isTemplateMode && (
-        <div className="bg-yellow-500 text-yellow-900 dark:bg-orange-600 dark:text-orange-100 px-4 py-2 text-center font-medium relative z-50">
+        <div className="bg-orange-500 text-orange-100 dark:bg-orange-600 dark:text-orange-100 px-4 py-2 text-center font-medium relative z-50">
           🚧 Template Mode - This is a demo version. Backend functions are mocked.
         </div>
       )}
