@@ -15,7 +15,7 @@ export function HeroSection({ onNavigation }: HeroSectionProps) {
           {Array.from({ length: 20 }).map((_, i) => (
             <div
               key={i}
-              className="particle absolute w-1 h-1 bg-blue-400/30 rounded-full animate-pulse"
+              className="particle absolute w-1 h-1 bg-blue-400/30 dark:bg-orange-400/30 rounded-full animate-pulse"
               style={{
                 left: `${Math.random() * 100}%`,
                 animationDelay: `${Math.random() * 4}s`,
@@ -27,12 +27,12 @@ export function HeroSection({ onNavigation }: HeroSectionProps) {
       </div>
 
       {/* Glassmorphism container */}
-      <div className="relative backdrop-blur-md bg-white/10 border border-white/20 rounded-3xl p-12 mx-4 shadow-2xl">
-        <h2 className="text-5xl font-bold text-gray-900 mb-6">
+      <div className="relative backdrop-blur-md bg-white/10 dark:bg-black/20 border border-white/20 dark:border-orange-500/30 rounded-3xl p-12 mx-4 shadow-2xl dark:shadow-orange-500/10">
+        <h2 className="text-5xl font-bold text-gray-900 dark:text-white mb-6">
           Never get trapped by a <br />
-          <span className="text-blue-600">parked car</span> again
+          <span className="text-blue-600 dark:text-orange-500">parked car</span> again
         </h2>
-        <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+        <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
           Smart QR stickers that instantly notify drivers via WhatsApp when their vehicle is blocking someone. 
           AI-powered, hassle-free, and gets results in minutes.
         </p>
@@ -40,7 +40,7 @@ export function HeroSection({ onNavigation }: HeroSectionProps) {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button 
             size="lg" 
-            className="text-lg px-8 py-3 shadow-lg hover:shadow-xl transition-all duration-300"
+            className="text-lg px-8 py-3 shadow-lg hover:shadow-xl transition-all duration-300 bg-blue-600 hover:bg-blue-700 dark:bg-orange-500 dark:hover:bg-orange-600"
             onClick={() => onNavigation('stickers')}
           >
             <QrCode className="w-5 h-5 mr-2" />
@@ -49,7 +49,7 @@ export function HeroSection({ onNavigation }: HeroSectionProps) {
           <Button 
             variant="outline" 
             size="lg" 
-            className="text-lg px-8 py-3 backdrop-blur-sm bg-white/20 border-white/30 hover:bg-white/30 shadow-lg hover:shadow-xl transition-all duration-300"
+            className="text-lg px-8 py-3 backdrop-blur-sm bg-white/20 dark:bg-black/20 border-white/30 dark:border-orange-500/30 hover:bg-white/30 dark:hover:bg-black/30 shadow-lg hover:shadow-xl transition-all duration-300 text-gray-900 dark:text-white"
             onClick={() => onNavigation('dashboard')}
           >
             <Car className="w-5 h-5 mr-2" />
