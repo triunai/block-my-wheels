@@ -1,23 +1,22 @@
-
 'use client'
 
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import React, { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Button } from '../components/ui/button'
+import { Badge } from '../components/ui/badge'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
-import { useDriverIncidents, useAckIncident } from '@/lib/hooks/useIncidents'
-import { toast } from '@/hooks/use-toast'
+} from '../components/ui/dialog'
+import { useDriverIncidents, useAckIncident } from '../lib/hooks/useIncidents'
+import { toast } from '../hooks/use-toast'
 import { Clock, Car, Bell } from 'lucide-react'
-import type { Incident } from '@/lib/supabaseClient'
+import type { Incident } from '../lib/supabaseClient'
 
 // Mock driver ID - in real app this would come from auth
 const MOCK_DRIVER_ID = 'driver-123'
@@ -145,7 +144,7 @@ export function DriverDashboard() {
                         <div className="flex items-center gap-4">
                           <div>
                             <div className="font-medium">
-                              Vehicle: {incident.sticker?.plate || 'Unknown'}
+                              Vehicle: {incident.sticker?.plate ?? 'Unknown'}
                             </div>
                             <div className="text-sm text-gray-600">
                               Urgency: {getRageDisplay(incident.rage)} ({incident.rage})

@@ -1,6 +1,6 @@
-
+import React from 'react'
 import { QrCode } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { Badge } from './ui/badge'
 
 export function Header() {
   return (
@@ -9,7 +9,7 @@ export function Header() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <QrCode className="w-8 h-8 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">AI Driver Alert</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Block My Wheels</h1>
           </div>
           <Badge variant="secondary" className="bg-green-100 text-green-800">
             Beta

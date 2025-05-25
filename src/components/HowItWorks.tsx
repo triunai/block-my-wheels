@@ -1,5 +1,5 @@
-
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { QrCode, Bell, Car } from 'lucide-react'
 
 export function HowItWorks() {

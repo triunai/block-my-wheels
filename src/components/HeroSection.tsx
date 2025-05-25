@@ -1,5 +1,5 @@
-
-import { Button } from '@/components/ui/button'
+import React from 'react'
+import { Button } from './ui/button'
 import { QrCode, Car } from 'lucide-react'
 
 interface HeroSectionProps {

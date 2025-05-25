@@ -1,5 +1,5 @@
-
-import { Button } from '@/components/ui/button'
+import React from 'react'
+import { Button } from './ui/button'
 import { QrCode, Users } from 'lucide-react'
 
 interface FooterProps {
@@ -13,7 +13,7 @@ export function Footer({ onNavigation }: FooterProps) {
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <QrCode className="w-6 h-6 text-blue-600" />
-            <span className="font-semibold text-gray-700">AI Driver Alert</span>
+            <span className="font-semibold text-gray-700">Block My Wheels</span>
           </div>
           <Button 
             variant="ghost" 

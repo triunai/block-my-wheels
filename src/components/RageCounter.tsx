@@ -1,10 +1,10 @@
-
 'use client'
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { useNotifyDriver } from '@/lib/hooks/useIncidents'
-import { toast } from '@/hooks/use-toast'
+import React, { useState } from 'react'
+import { Button } from './ui/button'
+import { useNotifyDriver } from '../lib/hooks/useIncidents'
+import { toast } from '../hooks/use-toast'
+import { logger } from '../lib/utils'
 
 interface RageCounterProps {
   token: string
@@ -29,7 +29,12 @@ export function RageCounter({ token, initialRage = 0, disabled }: RageCounterPro
         description: "The driver has been notified of your urgency.",
       })
     } catch (error) {
-      console.error('Rage update error:', error)
+      logger.error('Rage update failed', error)
+      toast({
+        title: "Update Failed",
+        description: "Unable to update urgency level. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
