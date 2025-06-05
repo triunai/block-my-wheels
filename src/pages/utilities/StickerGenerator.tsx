@@ -1,21 +1,22 @@
 
 'use client'
 
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import React, { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { useCreateSticker } from '@/lib/hooks/useIncidents'
-import { toast } from '@/hooks/use-toast'
+} from '../../components/ui/select'
+import { useCreateSticker } from '../../lib/hooks/useIncidents'
+import { toast } from '../../hooks/use-toast'
 import { Download, QrCode } from 'lucide-react'
+import { FadeawayCars } from '../../components/animations'
 
 const stickerStyles = [
   { value: 'modern', label: 'Modern Blue', preview: '🔵' },
@@ -87,15 +88,23 @@ export function StickerGenerator() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 p-4">
-      <div className="max-w-2xl mx-auto pt-8">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950 p-4 relative overflow-hidden">
+      {/* Subtle background cars */}
+      <FadeawayCars 
+        carCount={4}
+        speed="slow"
+        density="light"
+        className="opacity-20 dark:opacity-30"
+      />
+      
+      <div className="max-w-2xl mx-auto pt-8 relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             <QrCode className="inline w-8 h-8 mr-2" />
             Generate Your QR Sticker
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-300">
             Create a personalized QR sticker for your vehicle windscreen
           </p>
         </div>
@@ -137,7 +146,7 @@ export function StickerGenerator() {
               <Button
                 onClick={handleGenerate}
                 disabled={createMutation.isPending || !plate.trim()}
-                className="w-full"
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white"
                 size="lg"
               >
                 {createMutation.isPending ? 'Generating...' : 'Generate Sticker'}
@@ -176,7 +185,7 @@ export function StickerGenerator() {
                     Download Sticker
                   </Button>
 
-                  <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded">
+                  <div className="text-xs text-gray-500 bg-orange-50 dark:bg-orange-950/30 p-3 rounded">
                     <strong>Instructions:</strong>
                     <ol className="list-decimal list-inside mt-1 space-y-1">
                       <li>Print the downloaded sticker</li>

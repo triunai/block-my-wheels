@@ -1,10 +1,10 @@
-
 'use client'
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { toast } from '@/hooks/use-toast'
-import { useNotifyDriver } from '@/lib/hooks/useIncidents'
+import React, { useState } from 'react'
+import { Button } from './ui/button'
+import { toast } from '../hooks/use-toast'
+import { useNotifyDriver } from '../lib/hooks/useIncidents'
+import { logger } from '../lib/utils'
 import { Bell } from 'lucide-react'
 
 interface NotifyButtonProps {
@@ -26,7 +26,7 @@ export function NotifyButton({ token, disabled, className }: NotifyButtonProps) 
         description: "The driver has been notified via WhatsApp and will be with you shortly.",
       })
     } catch (error) {
-      console.error('Notification error:', error)
+      logger.error('Notification failed', error)
       toast({
         title: "Notification Failed",
         description: "Unable to notify the driver. Please try again.",
