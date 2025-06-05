@@ -2,11 +2,11 @@
 'use client'
 
 import { useSearchParams, useParams, useLocation } from 'react-router-dom'
-import { ScanPage } from './ScanPage'
-import { DriverDashboard } from './DriverDashboard'
-import { StickerGenerator } from './StickerGenerator'
-import { AdminDashboard } from './AdminDashboard'
-import { LandingPage } from '../components/LandingPage'
+import { ScanPage } from '../utilities/ScanPage'
+import { DriverDashboard } from '../dashboards/DriverDashboard'
+import { StickerGenerator } from '../utilities/StickerGenerator'
+import { AdminDashboard } from '../dashboards/AdminDashboard'
+import { LandingPage } from '../../components/LandingPage'
 
 export default function Index() {
   const [searchParams] = useSearchParams()

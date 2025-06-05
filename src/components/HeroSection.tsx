@@ -1,6 +1,7 @@
 import React from 'react'
 import { Button } from './ui/button'
 import { QrCode, Car } from 'lucide-react'
+import { FadeawayCars } from './animations'
 
 interface HeroSectionProps {
   onNavigation: (page: string) => void
@@ -75,7 +76,7 @@ export function HeroSection({ onNavigation }: HeroSectionProps) {
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={`orbital-${i}`}
-              className="particle-orbital absolute w-1 h-1 rounded-full bg-orange-400/40"
+              className="particle-orbital absolute w-0.5 h-0.5 rounded-full bg-orange-400/20"
               style={{
                 left: '50%',
                 top: '50%',
@@ -85,13 +86,21 @@ export function HeroSection({ onNavigation }: HeroSectionProps) {
             />
           ))}
         </div>
+
+        {/* Animated Fadeaway Cars */}
+        <FadeawayCars 
+          carCount={12}
+          speed="medium"
+          density="medium"
+          className="opacity-70 dark:opacity-80"
+        />
       </div>
 
       {/* Glassmorphism container with better borders */}
       <div className="hero-container relative backdrop-blur-md bg-white/20 dark:bg-black/30 border-2 border-gray-300/60 dark:border-orange-400/60 rounded-3xl p-12 mx-4 shadow-2xl dark:shadow-orange-500/20">
         <h2 className="hero-title text-5xl font-bold text-gray-900 dark:text-white mb-6">
           Never get trapped by a <br />
-          <span className="hero-accent gradient-text">parked car</span> again
+          <span className="gradient-text-animated">parked car</span> again
         </h2>
         <p className="hero-subtitle text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
           Smart QR stickers that instantly notify drivers via WhatsApp when their vehicle is blocking someone. 
@@ -180,6 +189,8 @@ export function HeroSection({ onNavigation }: HeroSectionProps) {
           }
         }
 
+
+
         @keyframes heroGlow {
           0%, 100% { 
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
@@ -205,6 +216,8 @@ export function HeroSection({ onNavigation }: HeroSectionProps) {
         .particle-orbital {
           animation: orbital var(--duration) linear infinite;
         }
+
+
         
         .hero-container {
           animation: heroGlow 4s ease-in-out infinite;
@@ -215,53 +228,38 @@ export function HeroSection({ onNavigation }: HeroSectionProps) {
           transition: transform 0.3s ease;
         }
         
-        /* Gradient Text Effect */
-        .gradient-text {
-          background: linear-gradient(135deg, #f97316 0%, #ea580c 25%, #dc2626 50%, #ea580c 75%, #f97316 100%);
-          background-size: 200% 200%;
+        /* Animated Gradient Text Effect for "parked car" */
+        .gradient-text-animated {
+          background: linear-gradient(135deg, #f97316 0%, #ea580c 20%, #dc2626 40%, #ea580c 60%, #f97316 80%, #fb923c 100%);
+          background-size: 300% 300%;
           -webkit-background-clip: text;
           background-clip: text;
           -webkit-text-fill-color: transparent;
-          animation: gradientShift 3s ease-in-out infinite;
+          animation: gradientShift 4s ease-in-out infinite;
           position: relative;
           display: inline-block;
         }
 
         @keyframes gradientShift {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        
-        /* Inverted Underline - Intense outside, soft inside */
-        .hero-accent::after {
-          content: '';
-          position: absolute;
-          bottom: -4px;
-          left: -10px;
-          right: -10px;
-          height: 4px;
-          background: linear-gradient(90deg, 
-            #f97316 0%, 
-            #ea580c 15%, 
-            rgba(249, 115, 22, 0.3) 35%, 
-            rgba(249, 115, 22, 0.1) 50%, 
-            rgba(249, 115, 22, 0.3) 65%, 
-            #ea580c 85%, 
-            #f97316 100%
-          );
-          border-radius: 2px;
-          opacity: 0.8;
-          animation: underlineGlow 2s ease-in-out infinite;
-        }
-
-        @keyframes underlineGlow {
-          0%, 100% { 
-            opacity: 0.6;
-            transform: scaleX(1);
+          0% { 
+            background-position: 0% 50%;
+            transform: scale(1);
+          }
+          25% {
+            background-position: 50% 0%;
+            transform: scale(1.02);
           }
           50% { 
-            opacity: 0.9;
-            transform: scaleX(1.05);
+            background-position: 100% 50%;
+            transform: scale(1);
+          }
+          75% {
+            background-position: 50% 100%;
+            transform: scale(1.01);
+          }
+          100% { 
+            background-position: 0% 50%;
+            transform: scale(1);
           }
         }
         
@@ -297,9 +295,9 @@ export function HeroSection({ onNavigation }: HeroSectionProps) {
         }
 
         /* Dark mode adjustments */
-        .dark .gradient-text {
-          background: linear-gradient(135deg, #fb923c 0%, #f97316 25%, #ea580c 50%, #f97316 75%, #fb923c 100%);
-          background-size: 200% 200%;
+        .dark .gradient-text-animated {
+          background: linear-gradient(135deg, #fb923c 0%, #f97316 20%, #ea580c 40%, #f97316 60%, #fb923c 80%, #fdba74 100%);
+          background-size: 300% 300%;
           -webkit-background-clip: text;
           background-clip: text;
           -webkit-text-fill-color: transparent;

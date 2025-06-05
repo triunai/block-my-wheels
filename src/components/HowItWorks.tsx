@@ -1,10 +1,18 @@
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { QrCode, Bell, Car } from 'lucide-react'
+import { FadeawayCars } from './animations'
 
 export function HowItWorks() {
   return (
-    <div className="grid md:grid-cols-3 gap-8 mb-16">
+    <div className="relative grid md:grid-cols-3 gap-8 mb-16">
+      {/* Subtle background cars */}
+      <FadeawayCars 
+        carCount={6}
+        speed="slow"
+        density="medium"
+        className="opacity-30 dark:opacity-40"
+      />
       <Card className="how-it-works-card text-center hover:shadow-2xl hover:shadow-orange-200/50 dark:hover:shadow-orange-500/20 transition-all duration-500 transform hover:-translate-y-2 shadow-lg bg-white/90 dark:bg-black/50 backdrop-blur-sm border-2 border-gray-300/50 dark:border-orange-400/50" style={{ animationDelay: '0.1s' }}>
         <CardHeader>
           <CardTitle className="flex flex-col items-center dark:text-white">

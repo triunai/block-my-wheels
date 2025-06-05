@@ -1,15 +1,15 @@
 
 'use client'
 
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { NotifyButton } from '@/components/NotifyButton'
-import { RageCounter } from '@/components/RageCounter'
-import { AckModal } from '@/components/AckModal'
-import { LocaleSwitcher } from '@/components/LocaleSwitcher'
-import { useScanPageData } from '@/lib/hooks/useIncidents'
-import { Skeleton } from '@/components/ui/skeleton'
+import React, { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
+import { Badge } from '../../components/ui/badge'
+import { NotifyButton } from '../../components/NotifyButton'
+import { RageCounter } from '../../components/RageCounter'
+import { AckModal } from '../../components/AckModal'
+import { LocaleSwitcher } from '../../components/LocaleSwitcher'
+import { useScanPageData } from '../../lib/hooks/useIncidents'
+import { Skeleton } from '../../components/ui/skeleton'
 
 interface ScanPageProps {
   token: string
@@ -21,7 +21,7 @@ export function ScanPage({ token }: ScanPageProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950 p-4">
         <div className="max-w-md mx-auto pt-8 space-y-4">
           <Skeleton className="h-8 w-3/4 mx-auto" />
           <Card>
@@ -38,7 +38,7 @@ export function ScanPage({ token }: ScanPageProps) {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-100 p-4 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950 p-4 flex items-center justify-center">
         <Card className="max-w-md w-full">
           <CardContent className="p-6 text-center">
             <div className="text-2xl mb-2">❌</div>
@@ -54,7 +54,7 @@ export function ScanPage({ token }: ScanPageProps) {
   const isAcknowledged = incident?.status === 'ack'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950 p-4">
       <div className="max-w-md mx-auto pt-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
