@@ -1,21 +1,103 @@
 import React from 'react'
-import { QrCode } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { QrCode, LogIn, LogOut, User, Settings } from 'lucide-react'
 import { Badge } from './ui/badge'
+import { Button } from './ui/button'
 import { ThemeToggle } from './ThemeToggle'
+import { useAuth } from '../contexts/AuthContext'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu'
+import { Avatar, AvatarFallback } from './ui/avatar'
 
 export function Header() {
+  const { user, profile, signOut } = useAuth()
+
+  const handleSignOut = async () => {
+    await signOut()
+  }
+
+  const getUserInitials = (email: string) => {
+    return email.substring(0, 2).toUpperCase()
+  }
+
   return (
     <div className="bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-white/20 dark:border-orange-500/20 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center space-x-2">
             <QrCode className="w-8 h-8 text-orange-500 dark:text-orange-500" />
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Block My Wheels</h1>
-          </div>
+          </Link>
+          
           <div className="flex items-center space-x-4">
             <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30">
               Beta
             </Badge>
+            
+            {user ? (
+              <div className="flex items-center space-x-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-orange-500 text-white">
+                          {getUserInitials(user.email || '')}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <div className="flex flex-col space-y-1 p-2">
+                      <p className="text-sm font-medium leading-none">{user.email}</p>
+                      <p className="text-xs leading-none text-muted-foreground capitalize">
+                        {profile?.user_type} account
+                      </p>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link 
+                        to={profile?.user_type === 'admin' ? '/admin' : '/dashboard'} 
+                        className="flex items-center"
+                      >
+                        <User className="mr-2 h-4 w-4" />
+                        Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/stickers" className="flex items-center">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Settings
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Link to="/login">
+                  <Button variant="ghost" size="sm" className="text-gray-600 hover:text-orange-500 dark:text-gray-300 dark:hover:text-orange-400">
+                    <LogIn className="w-4 h-4 mr-1" />
+                    Sign in
+                  </Button>
+                </Link>
+                <Link to="/signup">
+                  <Button size="sm" className="bg-orange-500 hover:bg-orange-600 dark:bg-orange-500 dark:hover:bg-orange-600 text-white">
+                    Sign up
+                  </Button>
+                </Link>
+              </div>
+            )}
+            
             <ThemeToggle />
           </div>
         </div>

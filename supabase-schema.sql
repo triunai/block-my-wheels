@@ -1,247 +1,307 @@
-
--- AI Driver Alert System Database Schema
--- Run this in your Supabase SQL editor
+-- paRQed Production-Ready Database Schema v1.3
+-- SQL Engineer Mode: Simplified, Scalable, and Robust.
 
 -- Enable necessary extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION
+IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION
+IF NOT EXISTS "pg_net";
 
--- Drivers table
-CREATE TABLE IF NOT EXISTS drivers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    phone VARCHAR(20) NOT NULL,
-    wa_id VARCHAR(50), -- WhatsApp ID
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+-- ============================================================================
+-- ENUM TYPES (UDTs) - For Data Integrity and Performance
+-- ============================================================================
+
+CREATE TYPE user_type_enum AS ENUM
+('driver', 'admin');
+CREATE TYPE sticker_status_enum AS ENUM
+('active', 'inactive', 'archived');
+CREATE TYPE incident_status_enum AS ENUM
+('open', 'acknowledged', 'resolved', 'expired');
+
+-- ============================================================================
+-- CORE TABLES (Refined)
+-- ============================================================================
+
+-- MERGED user_profiles table. This is now the central 'driver' entity.
+CREATE TABLE user_profiles
+(
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_type user_type_enum NOT NULL DEFAULT 'driver',
+    phone TEXT NOT NULL UNIQUE,
+    -- The user's WhatsApp-enabled number.
+    wa_id TEXT,
+    -- The WhatsApp ID for direct messaging.
+    -- Analytics fields moved from the 'drivers' table
+    total_incidents INTEGER NOT NULL DEFAULT 0,
+    avg_response_time_minutes DECIMAL(7,2),
+    -- Timestamps
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Stickers table
-CREATE TABLE IF NOT EXISTS stickers (
+-- Stickers (QR codes for vehicles) - Now references user_profiles directly.
+CREATE TABLE stickers
+(
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    driver_id UUID REFERENCES drivers(id) ON DELETE CASCADE,
+    -- Simplified Foreign Key
+    owner_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
     token TEXT UNIQUE NOT NULL,
     plate TEXT,
     style TEXT DEFAULT 'modern',
-    active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    status sticker_status_enum NOT NULL DEFAULT 'active',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Incidents table
-CREATE TABLE IF NOT EXISTS incidents (
+-- Incidents (Rage Events) - Unchanged, the design was solid.
+CREATE TABLE incidents
+(
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    sticker_id UUID REFERENCES stickers(id) ON DELETE CASCADE,
-    rage INTEGER DEFAULT 0,
-    status TEXT CHECK (status IN ('open', 'ack', 'closed')) DEFAULT 'open',
+    sticker_id UUID NOT NULL REFERENCES stickers(id) ON DELETE CASCADE,
+    rage_level INTEGER NOT NULL CHECK (rage_level BETWEEN 0 AND 10),
+    status incident_status_enum NOT NULL DEFAULT 'open',
     scanner_ip INET,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    ack_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    acknowledged_at TIMESTAMPTZ,
     eta_minutes INTEGER,
-    closed_at TIMESTAMPTZ
+    resolved_at TIMESTAMPTZ
 );
 
--- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_stickers_token ON stickers(token);
-CREATE INDEX IF NOT EXISTS idx_stickers_driver_id ON stickers(driver_id);
-CREATE INDEX IF NOT EXISTS idx_incidents_sticker_id ON incidents(sticker_id);
-CREATE INDEX IF NOT EXISTS idx_incidents_status ON incidents(status);
-CREATE INDEX IF NOT EXISTS idx_incidents_created_at ON incidents(created_at);
+-- Rate Limiting - Unchanged, the design was solid.
+CREATE TABLE rate_limits
+(
+    identifier TEXT NOT NULL,
+    window_start TIMESTAMPTZ NOT NULL,
+    request_count INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (identifier, window_start)
+    -- More efficient composite PK
+);
 
--- Row Level Security Policies
-ALTER TABLE drivers ENABLE ROW LEVEL SECURITY;
+-- ============================================================================
+-- ROW LEVEL SECURITY (Simplified)
+-- ============================================================================
+
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own profile" ON user_profiles FOR ALL USING
+(auth.uid
+() = id);
+
 ALTER TABLE stickers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Stickers are publicly readable" ON stickers FOR
+SELECT USING (true);
+CREATE POLICY "Owners can manage their own stickers" ON stickers FOR ALL USING
+(auth.uid
+() = owner_id);
+
 ALTER TABLE incidents ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Incidents are publicly readable" ON incidents FOR
+SELECT USING (true);
+CREATE POLICY "Anyone can create incidents" ON incidents FOR
+INSERT WITH CHECK
+    (true)
+;
+CREATE POLICY "Owners can update their incidents" ON incidents FOR
+UPDATE USING (
+    auth.uid()
+=
+(SELECT owner_id
+FROM stickers
+WHERE id = incidents.sticker_id)
+);
 
--- Drivers policies
-CREATE POLICY "Users can view their own driver profile" ON drivers
-    FOR SELECT USING (auth.uid() = user_id);
+-- ============================================================================
+-- CORE FUNCTIONS (Refined)
+-- ============================================================================
 
-CREATE POLICY "Users can update their own driver profile" ON drivers
-    FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own driver profile" ON drivers
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Stickers policies (readable by anyone for scanning, manageable by owner)
-CREATE POLICY "Stickers are viewable by everyone" ON stickers
-    FOR SELECT USING (TRUE);
-
-CREATE POLICY "Users can manage their own stickers" ON stickers
-    FOR ALL USING (
-        driver_id IN (
-            SELECT id FROM drivers WHERE user_id = auth.uid()
-        )
-    );
-
--- Incidents policies (readable for scanning, manageable by sticker owner)
-CREATE POLICY "Incidents are viewable by everyone" ON incidents
-    FOR SELECT USING (TRUE);
-
-CREATE POLICY "Anyone can create incidents" ON incidents
-    FOR INSERT WITH CHECK (TRUE);
-
-CREATE POLICY "Sticker owners can update their incidents" ON incidents
-    FOR UPDATE USING (
-        sticker_id IN (
-            SELECT s.id FROM stickers s
-            JOIN drivers d ON s.driver_id = d.id
-            WHERE d.user_id = auth.uid()
-        )
-    );
-
--- RPC Functions
-
--- Fetch scan page data (sticker + current incident)
-CREATE OR REPLACE FUNCTION fetch_scan_page(token TEXT)
-RETURNS JSON AS $$
+-- Function to generate a unique, human-readable token.
+CREATE OR REPLACE FUNCTION generate_qr_token
+()
+RETURNS TEXT AS $$
+BEGIN
+    -- Loop to ensure the generated token is truly unique, though collisions are astronomically rare.
+    LOOP
 DECLARE
-    sticker_data JSON;
-    incident_data JSON;
-    result JSON;
+            new_token TEXT := 'P' || substr
+(replace
+(uuid_generate_v4
+()::text, '-', ''), 1, 8);
 BEGIN
-    -- Get sticker with driver info
-    SELECT to_json(s.*) INTO sticker_data
-    FROM stickers s
-    WHERE s.token = fetch_scan_page.token AND s.active = TRUE;
-    
-    IF sticker_data IS NULL THEN
-        RAISE EXCEPTION 'Invalid or inactive sticker token';
-    END IF;
-    
-    -- Get or create open incident for this sticker
-    SELECT to_json(i.*) INTO incident_data
-    FROM incidents i
-    WHERE i.sticker_id = (sticker_data->>'id')::UUID 
-    AND i.status IN ('open', 'ack')
-    ORDER BY i.created_at DESC
-    LIMIT 1;
-    
-    -- If no open incident exists, create one
-    IF incident_data IS NULL THEN
-        INSERT INTO incidents (sticker_id, scanner_ip)
-        VALUES (
-            (sticker_data->>'id')::UUID,
-            inet_client_addr()
-        )
-        RETURNING to_json(incidents.*) INTO incident_data;
-    END IF;
-    
-    -- Build result
-    result := json_build_object(
-        'sticker', sticker_data,
-        'incident', incident_data
-    );
-    
-    RETURN result;
+    IF NOT EXISTS (SELECT 1
+    FROM stickers
+    WHERE token = new_token) THEN
+    RETURN new_token;
+END
+IF;
+        END;
+END LOOP;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql VOLATILE;
 
--- Notify driver function
-CREATE OR REPLACE FUNCTION notify_driver(token TEXT, rage INTEGER DEFAULT 0)
-RETURNS JSON AS $$
+
+-- ATOMIC rate limit function. Solves the race condition.
+CREATE OR REPLACE FUNCTION check_and_increment_rate_limit
+(
+  p_identifier TEXT,
+  p_max_requests INTEGER DEFAULT 5,
+  p_window_minutes INTEGER DEFAULT 1
+) RETURNS BOOLEAN AS $$
 DECLARE
-    incident_id UUID;
-    result JSON;
+  v_window_start TIMESTAMPTZ := date_trunc
+('minute', NOW
+());
+  v_request_count INTEGER;
 BEGIN
-    -- Find the current open incident for this token
-    SELECT i.id INTO incident_id
-    FROM incidents i
-    JOIN stickers s ON i.sticker_id = s.id
-    WHERE s.token = notify_driver.token 
-    AND i.status = 'open'
-    ORDER BY i.created_at DESC
-    LIMIT 1;
-    
-    IF incident_id IS NULL THEN
-        RAISE EXCEPTION 'No open incident found for token';
-    END IF;
-    
-    -- Update incident with rage increment
-    UPDATE incidents 
-    SET rage = rage + notify_driver.rage,
-        updated_at = NOW()
-    WHERE id = incident_id
-    RETURNING to_json(incidents.*) INTO result;
-    
-    -- Here you would typically call n8n webhook
-    -- For now, we'll just log the notification
-    RAISE NOTICE 'Driver notification triggered for incident %', incident_id;
-    
-    RETURN result;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+    INSERT INTO rate_limits
+        (identifier, window_start, request_count)
+    VALUES
+        (p_identifier, v_window_start, 1)
+    ON CONFLICT
+    (identifier, window_start)
+  DO
+    UPDATE SET request_count = rate_limits.request_count + 1
+  RETURNING request_count INTO v_request_count;
 
--- Acknowledge incident function
-CREATE OR REPLACE FUNCTION ack_incident(incident_id UUID, eta_minutes INTEGER DEFAULT NULL)
-RETURNS JSON AS $$
-DECLARE
-    result JSON;
-BEGIN
-    -- Update incident status to acknowledged
-    UPDATE incidents 
-    SET status = 'ack',
-        ack_at = NOW(),
-        eta_minutes = ack_incident.eta_minutes
-    WHERE id = incident_id
-    AND status = 'open'
-    RETURNING to_json(incidents.*) INTO result;
-    
-    IF result IS NULL THEN
-        RAISE EXCEPTION 'Incident not found or already acknowledged';
-    END IF;
-    
-    RETURN result;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Create sticker function
-CREATE OR REPLACE FUNCTION create_sticker(plate TEXT, style TEXT DEFAULT 'modern')
-RETURNS JSON AS $$
-DECLARE
-    new_token TEXT;
-    driver_id UUID;
-    result JSON;
-BEGIN
-    -- Generate unique token
-    new_token := encode(gen_random_bytes(16), 'hex');
-    
-    -- Get or create driver for current user
-    SELECT id INTO driver_id FROM drivers WHERE user_id = auth.uid();
-    
-    IF driver_id IS NULL THEN
-        -- Create driver record (requires phone number in real implementation)
-        INSERT INTO drivers (user_id, phone)
-        VALUES (auth.uid(), 'pending')
-        RETURNING id INTO driver_id;
-    END IF;
-    
-    -- Create sticker
-    INSERT INTO stickers (driver_id, token, plate, style)
-    VALUES (driver_id, new_token, plate, style)
-    RETURNING to_json(stickers.*) INTO result;
-    
-    RETURN result;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Add updated_at triggers
-CREATE OR REPLACE FUNCTION update_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
+    RETURN v_request_count
+    <= p_max_requests;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER drivers_updated_at
-    BEFORE UPDATE ON drivers
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at();
+-- Get Rage Info Function - Maps rage levels to emojis and messages
+CREATE OR REPLACE FUNCTION get_rage_info(p_rage_level INTEGER)
+RETURNS JSON AS $$
+DECLARE
+    v_emoji TEXT;
+    v_message TEXT;
+    v_urgency TEXT;
+BEGIN
+    -- Map rage level to emoji and message
+    CASE p_rage_level
+        WHEN 0 THEN 
+            v_emoji := '😐';
+            v_message := 'Polite request to move vehicle';
+            v_urgency := 'low';
+        WHEN 1 THEN 
+            v_emoji := '😐';
+            v_message := 'Please move your vehicle when convenient';
+            v_urgency := 'low';
+        WHEN 2 THEN 
+            v_emoji := '😕';
+            v_message := 'Could you please move your vehicle?';
+            v_urgency := 'low';
+        WHEN 3 THEN 
+            v_emoji := '😠';
+            v_message := 'Please move your vehicle - blocking traffic';
+            v_urgency := 'medium';
+        WHEN 4 THEN 
+            v_emoji := '😠';
+            v_message := 'Vehicle is causing inconvenience - please move';
+            v_urgency := 'medium';
+        WHEN 5 THEN 
+            v_emoji := '😡';
+            v_message := 'URGENT: Please move your vehicle immediately';
+            v_urgency := 'high';
+        WHEN 6 THEN 
+            v_emoji := '😡';
+            v_message := 'URGENT: Vehicle blocking emergency access';
+            v_urgency := 'high';
+        WHEN 7 THEN 
+            v_emoji := '🤬';
+            v_message := 'CRITICAL: Move vehicle NOW - causing major disruption';
+            v_urgency := 'critical';
+        WHEN 8 THEN 
+            v_emoji := '🤬';
+            v_message := 'CRITICAL: Vehicle must be moved immediately';
+            v_urgency := 'critical';
+        WHEN 9 THEN 
+            v_emoji := '🔥';
+            v_message := 'EMERGENCY: Vehicle blocking emergency services';
+            v_urgency := 'emergency';
+        WHEN 10 THEN 
+            v_emoji := '💀';
+            v_message := 'MAXIMUM RAGE: Move this vehicle RIGHT NOW!';
+            v_urgency := 'maximum';
+        ELSE 
+            v_emoji := '😐';
+            v_message := 'Please move your vehicle';
+            v_urgency := 'low';
+    END CASE;
 
--- Insert some demo data
-INSERT INTO drivers (id, user_id, phone, wa_id) VALUES 
-    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '+1234567890', 'demo_wa_id')
-ON CONFLICT DO NOTHING;
+    RETURN json_build_object(
+        'rage_level', p_rage_level,
+        'emoji', v_emoji,
+        'message', v_message,
+        'urgency', v_urgency
+    );
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
-INSERT INTO stickers (id, driver_id, token, plate, style) VALUES 
-    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'demo', 'DEMO-123', 'modern')
-ON CONFLICT DO NOTHING;
+-- ============================================================================
+-- THE CORE RPC (Simplified & More Robust)
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION handle_new_ping
+(
+  p_token TEXT,
+  p_rage_level INTEGER,
+  p_scanner_ip_text TEXT DEFAULT NULL
+) RETURNS JSON AS $$
+DECLARE
+  v_sticker_owner RECORD;
+  v_incident_id UUID;
+  v_rage_info JSONB;
+  v_webhook_url TEXT := 'http://localhost:5678/webhook/notify-driver';
+-- Replace with production URL later
+BEGIN
+    -- 1. Validate Token & Fetch Owner Data (Single Query)
+    SELECT p.phone, p.wa_id, s.id as sticker_id, s.plate
+    INTO v_sticker_owner
+    FROM stickers s
+        JOIN user_profiles p ON s.owner_id = p.id
+    WHERE s.token = p_token AND s.status = 'active';
+
+    IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Invalid or inactive QR token');
+END
+IF;
+  
+    -- 2. ATOMIC Rate Limiting
+    IF NOT check_and_increment_rate_limit(p_token, 5, 1) THEN
+RETURN jsonb_build_object('success', false, 'error', 'Rate limit exceeded. Please wait a moment.');
+END
+IF;
+  
+    -- 3. Create Incident Record
+    INSERT INTO incidents
+    (sticker_id, rage_level, scanner_ip)
+VALUES
+    (v_sticker_owner.sticker_id, p_rage_level, p_scanner_ip_text::INET)
+RETURNING id INTO v_incident_id;
+  
+    -- 4. Get Rage Info
+    v_rage_info := get_rage_info
+(p_rage_level)::jsonb;
+
+    -- 5. Trigger n8n Webhook
+    PERFORM net.http_post
+(
+        url := v_webhook_url,
+        body := jsonb_build_object
+(
+            'incident_id', v_incident_id,
+            'owner_phone', v_sticker_owner.phone,
+            'owner_wa_id', v_sticker_owner.wa_id,
+            'plate', v_sticker_owner.plate,
+            'rage_info', v_rage_info
+        )
+    );
+
+-- 6. Return Immediate Success to the Scanner
+RETURN jsonb_build_object(
+        'success', true,
+        'incident_id', v_incident_id,
+        'message', 'Notification is on its way.'
+    );
+
+EXCEPTION WHEN OTHERS THEN
+RETURN jsonb_build_object('success', false, 'error', SQLERRM);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

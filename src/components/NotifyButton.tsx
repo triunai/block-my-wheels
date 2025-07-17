@@ -6,12 +6,7 @@ import { toast } from '../hooks/use-toast'
 import { useNotifyDriver } from '../lib/hooks/useIncidents'
 import { logger } from '../lib/utils'
 import { Bell } from 'lucide-react'
-
-interface NotifyButtonProps {
-  token: string
-  disabled?: boolean
-  className?: string
-}
+import { NotifyButtonProps } from '../interfaces/components'
 
 export function NotifyButton({ token, disabled, className }: NotifyButtonProps) {
   const [isLoading, setIsLoading] = useState(false)

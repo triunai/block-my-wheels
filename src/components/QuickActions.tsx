@@ -1,10 +1,7 @@
 import React from 'react'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
-
-interface QuickActionsProps {
-  onNavigation: (page: string) => void
-}
+import { QuickActionsProps } from '../interfaces/components'
 
 export function QuickActions({ onNavigation }: QuickActionsProps) {
   return (
