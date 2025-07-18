@@ -170,6 +170,83 @@ export function DatabaseDiagnostics() {
       addResult({ test: 'Sticker Insert', status: 'error', message: 'No user logged in' })
     }
 
+    // Test 6: Production Signup Issue Check
+    if (user?.id) {
+      const start6 = Date.now()
+      try {
+        // Check if user exists in auth.users but missing from user_profiles
+        const { data: authUser, error: authError } = await supabase.auth.getUser()
+        
+        if (authUser?.user) {
+          const authUserId = authUser.user.id
+          const authUserEmail = authUser.user.email
+          const authUserPhone = authUser.user.user_metadata?.phone || authUser.user.phone
+          
+          // Check user_profiles table
+          const { data: profile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', authUserId)
+            .single()
+          
+          const duration6 = Date.now() - start6
+          
+          if (profileError && profileError.code === 'PGRST116') {
+            // User exists in auth but not in user_profiles - this is the signup issue!
+            addResult({ 
+              test: 'Production Signup Issue Check', 
+              status: 'error', 
+              message: `❌ SIGNUP BUG DETECTED! User ${authUserEmail} exists in auth.users but has NO profile. Phone in auth metadata: ${authUserPhone || 'MISSING'}`,
+              duration: duration6 
+            })
+          } else if (profileError) {
+            addResult({ 
+              test: 'Production Signup Issue Check', 
+              status: 'error', 
+              message: `Profile query error: ${profileError.message}`,
+              duration: duration6 
+            })
+          } else if (profile) {
+            if (!profile.phone) {
+              addResult({ 
+                test: 'Production Signup Issue Check', 
+                status: 'error', 
+                message: `❌ SIGNUP BUG DETECTED! User ${authUserEmail} has profile but phone is NULL. Phone in auth metadata: ${authUserPhone || 'MISSING'}`,
+                duration: duration6 
+              })
+            } else {
+              addResult({ 
+                test: 'Production Signup Issue Check', 
+                status: 'success', 
+                message: `✅ Signup OK. User has profile with phone: ${profile.phone}`,
+                duration: duration6 
+              })
+            }
+          }
+        } else {
+          addResult({ 
+            test: 'Production Signup Issue Check', 
+            status: 'error', 
+            message: 'Could not get current auth user'
+          })
+        }
+      } catch (err) {
+        const duration6 = Date.now() - start6
+        addResult({ 
+          test: 'Production Signup Issue Check', 
+          status: 'error', 
+          message: `Signup check timeout: ${(err as Error).message}`,
+          duration: duration6 
+        })
+      }
+    } else {
+      addResult({ 
+        test: 'Production Signup Issue Check', 
+        status: 'error', 
+        message: 'No user logged in' 
+      })
+    }
+
     setIsRunning(false)
   }
 

@@ -206,6 +206,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     userType: 'driver' = 'driver'
   ) => {
     try {
+      logger.info('[SIGNUP_START] Starting signup process', { email, phone, userType })
+      
       // Sign up with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -219,13 +221,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       })
 
       if (authError) {
-        logger.error('Sign up error:', authError)
+        logger.error('[SIGNUP_AUTH_ERROR] Sign up error:', authError)
         return { user: null, error: authError }
       }
 
+      logger.info('[SIGNUP_AUTH_SUCCESS] User auth created successfully', { userId: authData.user?.id })
+
       if (authData.user) {
-        // Create user profile
-        const { error: profileError } = await supabase
+        // Create user profile with detailed logging
+        logger.info('[SIGNUP_PROFILE_START] Creating user profile...', {
+          userId: authData.user.id,
+          phone,
+          userType
+        })
+        
+        const { data: profileData, error: profileError } = await supabase
           .from('user_profiles')
           .insert([{
             id: authData.user.id,
@@ -233,18 +243,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             phone,
             total_incidents: 0
           }])
+          .select()
+          .single()
 
         if (profileError) {
-          logger.error('Error creating user profile:', profileError)
-          // Don't return error here as user is created, profile can be created later
+          logger.error('[SIGNUP_PROFILE_ERROR] Error creating user profile:', {
+            error: profileError,
+            code: profileError.code,
+            message: profileError.message,
+            details: profileError.details,
+            hint: profileError.hint
+          })
+          
+          // Return the profile error to the user so they know what went wrong
+          return { 
+            user: null, 
+            error: { 
+              message: `Account created but profile setup failed: ${profileError.message}. Please contact support.`,
+              name: 'ProfileCreationError'
+            } as AuthError 
+          }
+        } else {
+          logger.info('[SIGNUP_PROFILE_SUCCESS] User profile created successfully', profileData)
         }
 
-        logger.info('User signed up successfully')
+        logger.info('[SIGNUP_COMPLETE] User signed up successfully')
       }
 
       return { user: authData.user, error: null }
     } catch (error) {
-      logger.error('Unexpected error during sign up:', error)
+      logger.error('[SIGNUP_EXCEPTION] Unexpected error during sign up:', error)
       return { user: null, error: error as AuthError }
     }
   }
