@@ -8,6 +8,7 @@ import { NotifyButton } from '../../components/NotifyButton'
 import { RageCounter } from '../../components/RageCounter'
 import { AckModal } from '../../components/AckModal'
 import { LocaleSwitcher } from '../../components/LocaleSwitcher'
+import { Header } from '../../components/Header'
 import { useScanPageData } from '../../lib/hooks/useIncidents'
 import { Skeleton } from '../../components/ui/skeleton'
 import { ScanPageProps } from '../../interfaces/components'
@@ -51,8 +52,9 @@ export function ScanPage({ token }: ScanPageProps) {
   const isAcknowledged = incident?.status === 'ack'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950 p-4">
-      <div className="max-w-md mx-auto pt-8">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950">
+      <Header />
+      <div className="max-w-md mx-auto pt-8 p-4">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-800">🚗 Driver Alert</h1>

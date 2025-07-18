@@ -2,8 +2,10 @@ import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
-import { supabase } from '../../lib/supabaseClient'
+import { Alert, AlertDescription } from '../../components/ui/alert'
+import { Header } from '../../components/Header'
 import { useAuth } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabaseClient'
 
 interface TestResult {
   test: string
@@ -260,61 +262,64 @@ export function DatabaseDiagnostics() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Database Diagnostics</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-4">
-            <Button 
-              onClick={runDiagnostics} 
-              disabled={isRunning}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {isRunning ? 'Running...' : 'Run Diagnostics'}
-            </Button>
-            
-            {user && (
-              <div className="text-sm text-gray-600 flex items-center">
-                Current User: <code className="ml-1 bg-gray-100 px-2 py-1 rounded">{user.id}</code>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950">
+      <Header />
+      <div className="max-w-4xl mx-auto p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Database Diagnostics</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-4">
+              <Button 
+                onClick={runDiagnostics} 
+                disabled={isRunning}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {isRunning ? 'Running...' : 'Run Diagnostics'}
+              </Button>
+              
+              {user && (
+                <div className="text-sm text-gray-600 flex items-center">
+                  Current User: <code className="ml-1 bg-gray-100 px-2 py-1 rounded">{user.id}</code>
+                </div>
+              )}
+            </div>
+
+            {results.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="font-semibold">Test Results:</h3>
+                {results.map((result, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 border rounded">
+                    <div className="flex items-center gap-3">
+                      <Badge className={getStatusColor(result.status)}>
+                        {result.status}
+                      </Badge>
+                      <span className="font-medium">{result.test}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">{result.message}</span>
+                      {result.duration && (
+                        <span className="text-xs text-gray-500">({result.duration}ms)</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
-          </div>
 
-          {results.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="font-semibold">Test Results:</h3>
-              {results.map((result, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded">
-                  <div className="flex items-center gap-3">
-                    <Badge className={getStatusColor(result.status)}>
-                      {result.status}
-                    </Badge>
-                    <span className="font-medium">{result.test}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">{result.message}</span>
-                    {result.duration && (
-                      <span className="text-xs text-gray-500">({result.duration}ms)</span>
-                    )}
-                  </div>
-                </div>
-              ))}
+            <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
+              <strong>What this tests:</strong>
+              <ul className="list-disc list-inside mt-1 space-y-1">
+                <li>Basic database connectivity</li>
+                <li>User authentication status</li>
+                <li>Sticker table read permissions</li>
+                <li>Sticker table insert permissions (RLS policies)</li>
+              </ul>
             </div>
-          )}
-
-          <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
-            <strong>What this tests:</strong>
-            <ul className="list-disc list-inside mt-1 space-y-1">
-              <li>Basic database connectivity</li>
-              <li>User authentication status</li>
-              <li>Sticker table read permissions</li>
-              <li>Sticker table insert permissions (RLS policies)</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 } 

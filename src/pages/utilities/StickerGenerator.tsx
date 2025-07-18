@@ -22,6 +22,11 @@ import { Download, QrCode, Plus, History, Package, Trash2 } from 'lucide-react'
 import { FadeawayCars } from '../../components/animations'
 import { generateSticker, generateBatchStickers, getScanUrl, stickerTemplates, downloadStickersAsZip } from '../../lib/qrGenerator'
 import { useAuth } from '../../contexts/AuthContext'
+import { Header } from '../../components/Header'
+import { useStickerHistory } from '../../lib/hooks/useIncidents'
+import { rpcFunctions } from '../../lib/supabaseClient'
+import { generateStickerImage, generatePDF, StickerData } from '../../lib/qrGenerator'
+import JSZip from 'jszip'
 
 const stickerStyles = [
   { value: 'minimal', label: 'QR Only (Recommended)', preview: '⚪' },
@@ -391,6 +396,8 @@ export function StickerGenerator() {
         className="opacity-20 dark:opacity-30"
       />
       
+      <Header />
+
       <div className="max-w-4xl mx-auto pt-8 relative z-10">
         {/* Header */}
         <div className="text-center mb-8">

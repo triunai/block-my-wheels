@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { QrCode, LogIn, LogOut, User, Settings } from 'lucide-react'
+import { QrCode, LogIn, LogOut, User, Settings, Home, Car } from 'lucide-react'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { ThemeToggle } from './ThemeToggle'
@@ -42,6 +42,30 @@ export function Header() {
               Beta
             </Badge>
             
+            {/* Main Navigation Links */}
+            {user && (
+              <div className="hidden md:flex items-center space-x-2">
+                <Link to="/">
+                  <Button variant="ghost" size="sm" className="text-gray-600 hover:text-orange-500 dark:text-gray-300 dark:hover:text-orange-400">
+                    <Home className="w-4 h-4 mr-1" />
+                    Home
+                  </Button>
+                </Link>
+                <Link to="/stickers">
+                  <Button variant="ghost" size="sm" className="text-gray-600 hover:text-orange-500 dark:text-gray-300 dark:hover:text-orange-400">
+                    <QrCode className="w-4 h-4 mr-1" />
+                    Stickers
+                  </Button>
+                </Link>
+                <Link to="/dashboard">
+                  <Button variant="ghost" size="sm" className="text-gray-600 hover:text-orange-500 dark:text-gray-300 dark:hover:text-orange-400">
+                    <Car className="w-4 h-4 mr-1" />
+                    Dashboard
+                  </Button>
+                </Link>
+              </div>
+            )}
+            
             {user ? (
               <div className="flex items-center space-x-2">
                 <DropdownMenu>
@@ -58,27 +82,50 @@ export function Header() {
                     <div className="flex flex-col space-y-1 p-2">
                       <p className="text-sm font-medium leading-none">{user.email}</p>
                       <p className="text-xs leading-none text-muted-foreground capitalize">
-                        {profile?.user_type} account
+                        {profile?.user_type || 'driver'} account
                       </p>
                     </div>
                     <DropdownMenuSeparator />
+                    
+                    {/* Mobile Navigation Links */}
+                    <div className="md:hidden">
+                      <DropdownMenuItem asChild>
+                        <Link to="/" className="flex items-center">
+                          <Home className="mr-2 h-4 w-4" />
+                          Home
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/stickers" className="flex items-center">
+                          <QrCode className="mr-2 h-4 w-4" />
+                          Stickers
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/dashboard" className="flex items-center">
+                          <Car className="mr-2 h-4 w-4" />
+                          Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </div>
+                    
                     <DropdownMenuItem asChild>
-                      <Link 
-                        to={profile?.user_type === 'admin' ? '/admin' : '/dashboard'} 
-                        className="flex items-center"
-                      >
+                      <Link to="/profile" className="flex items-center">
                         <User className="mr-2 h-4 w-4" />
-                        Dashboard
+                        Profile
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/stickers" className="flex items-center">
-                        <Settings className="mr-2 h-4 w-4" />
-                        Settings
-                      </Link>
-                    </DropdownMenuItem>
+                    {profile?.user_type === 'admin' && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="flex items-center">
+                          <Settings className="mr-2 h-4 w-4" />
+                          Admin
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600">
+                    <DropdownMenuItem onClick={handleSignOut}>
                       <LogOut className="mr-2 h-4 w-4" />
                       Sign out
                     </DropdownMenuItem>
