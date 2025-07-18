@@ -23,6 +23,8 @@ import { Signup } from "./pages/auth/Signup";
 import { ForgotPassword } from "./pages/auth/ForgotPassword";
 import { ResetPassword } from "./pages/auth/ResetPassword";
 import { Unauthorized } from "./pages/auth/Unauthorized";
+import { DatabaseDiagnostics } from "./pages/utilities/DatabaseDiagnostics";
+import { DemoNavigation } from "./pages/DemoNavigation";
 
 // Wrapper component to handle token parameter
 const ScanPageWrapper = () => {
@@ -54,6 +56,7 @@ const App = () => (
               <Routes>
                 {/* Public routes */}
                 <Route path="/" element={<LandingPage />} />
+                <Route path="/demo" element={<DemoNavigation />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -65,31 +68,11 @@ const App = () => (
                 <Route path="/t/:token" element={<ScanPageWrapper />} />
                 <Route path="/legacy" element={<Index />} />
                 
-                {/* Protected routes */}
-                <Route 
-                  path="/stickers" 
-                  element={
-                    <ProtectedRoute>
-                      <StickerGenerator />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/dashboard" 
-                  element={
-                    <DriverRoute>
-                      <DriverDashboard />
-                    </DriverRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin" 
-                  element={
-                    <AdminRoute>
-                      <AdminDashboard />
-                    </AdminRoute>
-                  } 
-                />
+                {/* All routes now public for demo */}
+                <Route path="/stickers" element={<StickerGenerator />} />
+                <Route path="/dashboard" element={<DriverDashboard />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/diagnostics" element={<DatabaseDiagnostics />} />
                 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />

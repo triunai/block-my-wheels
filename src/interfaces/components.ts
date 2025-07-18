@@ -9,6 +9,7 @@ export type ParticlePreset =
   | "snow" 
   | "matrix" 
   | "constellation"
+  | "bubbles"
 
 export interface ParticleBackgroundProps {
   preset?: ParticlePreset

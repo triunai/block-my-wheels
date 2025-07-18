@@ -1,12 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-
-interface CitySkylineProps {
-  className?: string;
-  buildingCount?: number;
-  animateWindows?: boolean;
-  nightMode?: boolean;
-}
+import { CitySkylineProps } from '../../interfaces/components'
 
 export const CitySkyline: React.FC<CitySkylineProps> = ({
   className = "",

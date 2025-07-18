@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { QrCode, LogIn, LogOut, User, Settings } from 'lucide-react'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
@@ -16,9 +16,12 @@ import { Avatar, AvatarFallback } from './ui/avatar'
 
 export function Header() {
   const { user, profile, signOut } = useAuth()
+  const navigate = useNavigate()
 
   const handleSignOut = async () => {
     await signOut()
+    // Redirect to home page after sign out
+    navigate('/', { replace: true })
   }
 
   const getUserInitials = (email: string) => {

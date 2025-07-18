@@ -11,6 +11,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, profile, loading } = useAuth()
   const location = useLocation()
+  
+  // Debug logging
+  console.log('ProtectedRoute check:', {
+    path: location.pathname,
+    loading,
+    hasUser: !!user,
+    hasProfile: !!profile,
+    requiredRole,
+    actualRole: profile?.user_type
+  })
 
   // Show loading skeleton while checking auth
   if (loading) {
@@ -30,13 +40,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={redirectTo} state={{ from: location }} replace />
   }
 
-  // If user exists but no profile, redirect to complete profile
+  // If user exists but no profile, allow access with basic functionality
+  // The profile will be created on next interaction or can be created later
   if (!profile) {
-    return <Navigate to="/complete-profile" state={{ from: location }} replace />
+    // For now, let them through - the components should handle null profiles gracefully
+    // This prevents the infinite redirect loop
   }
 
-  // If specific role is required, check user role
-  if (requiredRole && profile.user_type !== requiredRole) {
+  // If specific role is required and we have a profile, check user role
+  if (requiredRole && profile && profile.user_type !== requiredRole) {
     return <Navigate to="/unauthorized" replace />
   }
 

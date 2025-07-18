@@ -7,8 +7,7 @@ import { Label } from '../../components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Alert, AlertDescription } from '../../components/ui/alert'
 import { Separator } from '../../components/ui/separator'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
-import { QrCode, Mail, Lock, Eye, EyeOff, Phone, User } from 'lucide-react'
+import { QrCode, Mail, Lock, Eye, EyeOff, Phone } from 'lucide-react'
 import { AnimatedElement } from '../../components/animations'
 
 export const Signup: React.FC = () => {
@@ -17,7 +16,7 @@ export const Signup: React.FC = () => {
     password: '',
     confirmPassword: '',
     phone: '',
-    userType: 'driver' as 'driver' | 'admin'
+    userType: 'driver' as const // Admin accounts must be created via secure channels (SQL/backend)
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -111,6 +110,10 @@ export const Signup: React.FC = () => {
             </CardTitle>
             <CardDescription className="text-gray-600 dark:text-gray-300">
               Join Block My Wheels and never get trapped again
+              <br />
+              <span className="text-sm text-orange-600 dark:text-orange-400 font-medium">
+                Driver registration only
+              </span>
             </CardDescription>
           </CardHeader>
           
@@ -166,27 +169,9 @@ export const Signup: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="userType" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Account Type
-                </Label>
-                <Select
-                  value={formData.userType}
-                  onValueChange={(value) => handleInputChange('userType', value)}
-                  disabled={loading}
-                >
-                  <SelectTrigger className="h-12 border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-black/30 backdrop-blur-sm">
-                    <div className="flex items-center">
-                      <User className="mr-2 h-4 w-4 text-gray-400" />
-                      <SelectValue placeholder="Select account type" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="driver">Driver</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Account Type Selection Removed for Security */}
+              {/* Admin accounts must be created via secure channels (direct SQL/backend) */}
+              {/* Public registration is limited to driver accounts only */}
 
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
