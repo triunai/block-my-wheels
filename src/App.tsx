@@ -24,6 +24,8 @@ import { ForgotPassword } from "./pages/auth/ForgotPassword";
 import { ResetPassword } from "./pages/auth/ResetPassword";
 import { Unauthorized } from "./pages/auth/Unauthorized";
 import { DatabaseDiagnostics } from "./pages/utilities/DatabaseDiagnostics";
+import { ProfileManager } from "./pages/utilities/ProfileManager";
+import { QuickDiagnostic } from "./pages/utilities/QuickDiagnostic";
 import { DemoNavigation } from "./pages/DemoNavigation";
 
 // Wrapper component to handle token parameter
@@ -73,6 +75,8 @@ const App = () => (
                 <Route path="/dashboard" element={<DriverDashboard />} />
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/diagnostics" element={<DatabaseDiagnostics />} />
+                <Route path="/profile" element={<ProfileManager />} />
+                <Route path="/quick-diagnostic" element={<QuickDiagnostic />} />
                 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />

@@ -63,17 +63,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       logger.info('[FETCH_PROFILE] Querying Supabase for profile...')
       
-      const queryPromise = supabase
+      // Add emergency 5-second timeout to prevent app freezing
+      const profileQuery = supabase
         .from('user_profiles')
         .select('*')
         .eq('id', userId)
         .single()
+        
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Profile query timeout after 5 seconds')), 5000)
+      )
       
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
-      })
-      
-      const { data, error } = await Promise.race([queryPromise, timeoutPromise])
+      const { data, error } = await Promise.race([profileQuery, timeoutPromise])
+        
       logger.info(`[FETCH_PROFILE] Supabase query returned. HasError: ${!!error}, HasData: ${!!data}`)
 
       if (error) {
@@ -95,16 +97,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return data
     } catch (error) {
       if (error instanceof Error && error.message.includes('timeout')) {
-        logger.warn('[FETCH_PROFILE] Query timed out. Attempting creation as fallback.')
-        // Check if user is still signed in before creating profile
-        const currentSession = await supabase.auth.getSession()
-        if (!currentSession.data.session) {
-          logger.info('[FETCH_PROFILE] User signed out during profile fetch timeout. Aborting.')
-          return null
-        }
-        return await createDefaultProfile(userId)
+        logger.warn('[FETCH_PROFILE] Query timed out after 5 seconds. App will continue without profile.')
+        return null
       }
-      
       logger.error('[FETCH_PROFILE_END] Failed with critical error.', error)
       return null
     }

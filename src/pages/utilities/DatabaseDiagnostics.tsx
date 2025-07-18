@@ -1,346 +1,239 @@
 import React, { useState } from 'react'
-import { supabase } from '../../lib/supabaseClient'
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
-import { Alert, AlertDescription } from '../../components/ui/alert'
+import { Badge } from '../../components/ui/badge'
+import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../contexts/AuthContext'
-import { logger } from '../../lib/utils'
 
-interface DiagnosticResult {
+interface TestResult {
   test: string
-  status: 'success' | 'error' | 'warning'
+  status: 'pending' | 'success' | 'error'
   message: string
-  data?: unknown
+  duration?: number
 }
 
-export const DatabaseDiagnostics: React.FC = () => {
+export function DatabaseDiagnostics() {
+  const [results, setResults] = useState<TestResult[]>([])
+  const [isRunning, setIsRunning] = useState(false)
   const { user } = useAuth()
-  const [results, setResults] = useState<DiagnosticResult[]>([])
-  const [running, setRunning] = useState(false)
 
-  const addResult = (result: DiagnosticResult) => {
+  const addResult = (result: TestResult) => {
     setResults(prev => [...prev, result])
   }
 
-  // Test 1: Check authentication context
-  const checkAuthContext = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session) {
-        return addResult({
-          test: 'Authentication Context',
-          status: 'warning',
-          message: 'No active session - running in demo mode',
-          data: { demoMode: true }
-        })
-      }
-
-      addResult({
-        test: 'Authentication Context',
-        status: 'success',
-        message: 'Valid session found',
-        data: {
-          userId: session.user.id,
-          email: session.user.email,
-          role: session.user.role,
-        }
-      })
-    } catch (error) {
-      addResult({
-        test: 'Authentication Context',
-        status: 'error',
-        message: `Error: ${error}`
-      })
-    }
-  }
-
-  // Test 2: Check profile table count
-  const checkProfileCount = async () => {
-    try {
-      const { count, error } = await supabase
-        .from('user_profiles')
-        .select('*', { count: 'exact', head: true })
-      
-      if (error) throw error
-
-      addResult({
-        test: 'Profile Table Count',
-        status: 'success',
-        message: `Total profiles: ${count}`,
-        data: { count }
-      })
-    } catch (error) {
-      addResult({
-        test: 'Profile Table Count',
-        status: 'error',
-        message: `Error: ${error instanceof Error ? error.message : String(error)}`,
-        data: error
-      })
-    }
-  }
-
-  // Test 3: Check UUID matching between auth.users and user_profiles
-  const checkUuidMatching = async () => {
-    try {
-      if (!user) {
-        return addResult({
-          test: 'UUID Matching',
-          status: 'warning',
-          message: 'Running in demo mode - no authenticated user',
-          data: { demoMode: true }
-        })
-      }
-
-      // Try to fetch profile for current user
-      const { data: profile, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (error && error.code !== 'PGRST116') {
-        throw error
-      }
-
-      if (!profile) {
-        addResult({
-          test: 'UUID Matching',
-          status: 'warning',
-          message: 'No profile found for current user',
-          data: { userId: user.id }
-        })
-      } else {
-        addResult({
-          test: 'UUID Matching',
-          status: 'success',
-          message: 'Profile found and UUIDs match',
-          data: { 
-            authUserId: user.id,
-            profileId: profile.id,
-            match: user.id === profile.id
-          }
-        })
-      }
-    } catch (error) {
-      addResult({
-        test: 'UUID Matching',
-        status: 'error',
-        message: `Error: ${error instanceof Error ? error.message : String(error)}`,
-        data: error
-      })
-    }
-  }
-
-  // Test 4: Try to create a test profile
-  const testProfileCreation = async () => {
-    try {
-      if (!user) {
-        return addResult({
-          test: 'Profile Creation Test',
-          status: 'warning',
-          message: 'Running in demo mode - profile creation skipped',
-          data: { demoMode: true }
-        })
-      }
-
-      // First check if profile already exists
-      const { data: existing } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('id', user.id)
-        .single()
-
-      if (existing) {
-        return addResult({
-          test: 'Profile Creation Test',
-          status: 'warning',
-          message: 'Profile already exists for user'
-        })
-      }
-
-      // Try to create profile
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .insert({
-          id: user.id,
-          user_type: 'driver',
-          phone: null,
-          total_incidents: 0
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-
-      addResult({
-        test: 'Profile Creation Test',
-        status: 'success',
-        message: 'Profile created successfully',
-        data
-      })
-    } catch (error) {
-      addResult({
-        test: 'Profile Creation Test',
-        status: 'error',
-        message: `Error: ${error instanceof Error ? error.message : String(error)}`,
-        data: error
-      })
-    }
-  }
-
-  // Test 5: Check RLS policies status
-  const checkRlsPolicies = async () => {
-    try {
-      // This is a simplified check - in production you'd query pg_policies
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .limit(1)
-
-      if (!error) {
-        addResult({
-          test: 'RLS Policy Check',
-          status: 'warning',
-          message: 'Basic SELECT allowed - RLS might be permissive or disabled',
-          data: { canSelect: true }
-        })
-      } else {
-        addResult({
-          test: 'RLS Policy Check',
-          status: 'error',
-          message: 'SELECT blocked - RLS might be too restrictive',
-          data: error
-        })
-      }
-    } catch (error) {
-      addResult({
-        test: 'RLS Policy Check',
-        status: 'error',
-        message: `Error: ${error instanceof Error ? error.message : String(error)}`,
-        data: error
-      })
-    }
-  }
-
-  // Test 6: Direct database connection test
-  const testDirectConnection = async () => {
-    try {
-      const startTime = Date.now()
-      
-      // Simple health check query
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('id', { count: 'exact', head: true })
-      
-      const responseTime = Date.now() - startTime
-
-      if (error) throw error
-
-      addResult({
-        test: 'Direct Database Connection',
-        status: 'success',
-        message: `Connected successfully (${responseTime}ms)`,
-        data: { responseTime }
-      })
-    } catch (error) {
-      addResult({
-        test: 'Direct Database Connection',
-        status: 'error',
-        message: `Connection failed: ${error instanceof Error ? error.message : String(error)}`,
-        data: error
-      })
-    }
-  }
-
-  // Run all diagnostics
-  const runAllDiagnostics = async () => {
-    setRunning(true)
+  const runDiagnostics = async () => {
+    setIsRunning(true)
     setResults([])
 
+    const addResultSafe = (result: TestResult) => {
+      setResults(prev => [...prev, result])
+    }
+
+    // Test 1: Basic connectivity with timeout
+    const start1 = Date.now()
     try {
-      await checkAuthContext()
-      await testDirectConnection()
-      await checkProfileCount()
-      await checkUuidMatching()
-      await checkRlsPolicies()
-      await testProfileCreation()
-    } catch (error) {
-      logger.error('Diagnostic suite error:', error)
-    } finally {
-      setRunning(false)
+      const connectivityPromise = supabase.from('user_profiles').select('id', { count: 'exact', head: true })
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Connection timeout after 10 seconds')), 10000)
+      )
+
+      const { error } = await Promise.race([connectivityPromise, timeoutPromise]) as { error: any }
+      const duration1 = Date.now() - start1
+      
+      if (error) {
+        addResultSafe({ test: 'Basic Connectivity', status: 'error', message: error.message || 'Connection error', duration: duration1 })
+      } else {
+        addResultSafe({ test: 'Basic Connectivity', status: 'success', message: 'Connection successful', duration: duration1 })
+      }
+    } catch (err) {
+      const duration1 = Date.now() - start1
+      addResultSafe({ test: 'Basic Connectivity', status: 'error', message: (err as Error).message, duration: duration1 })
+    }
+
+    // Test 2: Auth check with timeout
+    const start2 = Date.now()
+    try {
+      const authPromise = supabase.auth.getUser()
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Auth timeout after 10 seconds')), 10000)
+      )
+
+      const { data: { user: authUser }, error: authError } = await Promise.race([authPromise, timeoutPromise]) as { data: { user: any }, error: any }
+      const duration2 = Date.now() - start2
+      
+      if (authError || !authUser) {
+        addResultSafe({ test: 'Auth Check', status: 'error', message: authError?.message || 'No user', duration: duration2 })
+      } else {
+        addResultSafe({ test: 'Auth Check', status: 'success', message: `User: ${authUser.id}`, duration: duration2 })
+      }
+    } catch (err) {
+      const duration2 = Date.now() - start2
+      addResultSafe({ test: 'Auth Check', status: 'error', message: (err as Error).message, duration: duration2 })
+    }
+
+    // Test 3: Sticker table read with timeout
+    const start3 = Date.now()
+    try {
+      const readPromise = supabase.from('stickers').select('id').limit(1)
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Read timeout after 10 seconds')), 10000)
+      )
+
+      const { data, error } = await Promise.race([readPromise, timeoutPromise]) as { data: any, error: any }
+      const duration3 = Date.now() - start3
+      
+      if (error) {
+        addResultSafe({ test: 'Sticker Read', status: 'error', message: error.message, duration: duration3 })
+      } else {
+        addResultSafe({ test: 'Sticker Read', status: 'success', message: `Read ${data?.length || 0} records`, duration: duration3 })
+      }
+    } catch (err) {
+      const duration3 = Date.now() - start3
+      addResultSafe({ test: 'Sticker Read', status: 'error', message: (err as Error).message, duration: duration3 })
+    }
+
+    // Test 4: User Profile Check (detailed)
+    if (user?.id) {
+      const start5 = Date.now()
+      try {
+        const { data: profile, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+        
+        const duration5 = Date.now() - start5
+        
+        if (error && error.code !== 'PGRST116') {
+          addResult({ test: 'User Profile Check', status: 'error', message: error.message, duration: duration5 })
+        } else if (!profile) {
+          addResult({ test: 'User Profile Check', status: 'error', message: `No profile found for user ${user.id}`, duration: duration5 })
+        } else {
+          // Check profile completeness
+          const issues = []
+          if (!profile.phone) issues.push('missing phone')
+          if (profile.phone && profile.phone.startsWith('temp-')) issues.push('temporary phone')
+          if (!profile.user_type) issues.push('missing user_type')
+          
+          if (issues.length === 0) {
+            addResult({ test: 'User Profile Check', status: 'success', message: `Complete profile found: ${profile.phone}`, duration: duration5 })
+          } else {
+            addResult({ test: 'User Profile Check', status: 'error', message: `Profile issues: ${issues.join(', ')}`, duration: duration5 })
+          }
+        }
+      } catch (err) {
+        const duration5 = Date.now() - start5
+        addResult({ test: 'User Profile Check', status: 'error', message: 'Profile check timeout', duration: duration5 })
+      }
+    } else {
+      addResult({ test: 'User Profile Check', status: 'error', message: 'No user logged in' })
+    }
+
+    // Test 5: Sticker insert (the main problem)
+    if (user?.id) {
+      const start4 = Date.now()
+      const testSticker = {
+        owner_id: user.id,
+        token: `TEST-${Date.now()}`,
+        plate: 'TEST-123',
+        style: 'minimal',
+        status: 'active' as const
+      }
+
+      try {
+        addResult({ test: 'Sticker Insert', status: 'pending', message: 'Attempting insert...' })
+        
+        const insertPromise = supabase.from('stickers').insert(testSticker).select().single()
+        const timeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Insert timeout after 15 seconds')), 15000)
+        )
+
+        const result = await Promise.race([insertPromise, timeoutPromise])
+        const { data, error } = result as { data: { id: string } | null; error: Error | null }
+        const duration4 = Date.now() - start4
+
+        if (error) {
+          addResult({ test: 'Sticker Insert', status: 'error', message: error.message, duration: duration4 })
+        } else {
+          addResult({ test: 'Sticker Insert', status: 'success', message: `Created sticker: ${data?.id || 'N/A'}`, duration: duration4 })
+          
+          // Clean up test data
+          if (data?.id) {
+            await supabase.from('stickers').delete().eq('id', data.id)
+          }
+        }
+      } catch (err) {
+        const duration4 = Date.now() - start4
+        addResult({ test: 'Sticker Insert', status: 'error', message: (err as Error).message, duration: duration4 })
+      }
+    } else {
+      addResult({ test: 'Sticker Insert', status: 'error', message: 'No user logged in' })
+    }
+
+    setIsRunning(false)
+  }
+
+  const getStatusColor = (status: TestResult['status']) => {
+    switch (status) {
+      case 'success': return 'bg-green-100 text-green-800'
+      case 'error': return 'bg-red-100 text-red-800'
+      case 'pending': return 'bg-yellow-100 text-yellow-800'
+      default: return 'bg-gray-100 text-gray-800'
     }
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="max-w-4xl mx-auto p-6">
       <Card>
         <CardHeader>
-          <div className="flex items-start gap-2">
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                Database & RLS Diagnostics
-              </h1>
-              <p className="text-gray-600 dark:text-gray-300">
-                {user ? `Logged in as: ${user.email}` : 'Running in Demo Mode (No Auth)'}
-              </p>
-            </div>
-          </div>
+          <CardTitle>Database Diagnostics</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-4">
             <Button 
-              onClick={runAllDiagnostics} 
-              disabled={running}
-              className="w-full"
+              onClick={runDiagnostics} 
+              disabled={isRunning}
+              className="bg-blue-600 hover:bg-blue-700"
             >
-              {running ? 'Running Diagnostics...' : 'Run All Diagnostics'}
+              {isRunning ? 'Running...' : 'Run Diagnostics'}
             </Button>
+            
+            {user && (
+              <div className="text-sm text-gray-600 flex items-center">
+                Current User: <code className="ml-1 bg-gray-100 px-2 py-1 rounded">{user.id}</code>
+              </div>
+            )}
           </div>
 
           {results.length > 0 && (
-            <div className="space-y-3 mt-6">
-              <h3 className="text-lg font-semibold">Results:</h3>
+            <div className="space-y-2">
+              <h3 className="font-semibold">Test Results:</h3>
               {results.map((result, index) => (
-                <Alert key={index} className={
-                  result.status === 'error' ? 'border-red-500' :
-                  result.status === 'warning' ? 'border-yellow-500' :
-                  'border-green-500'
-                }>
-                  <AlertDescription>
-                    <div className="flex items-start gap-2">
-                      <span className={
-                        result.status === 'error' ? 'text-red-500' :
-                        result.status === 'warning' ? 'text-yellow-500' :
-                        'text-green-500'
-                      }>
-                        {result.status === 'error' ? '❌' :
-                         result.status === 'warning' ? '⚠️' :
-                         '✅'}
-                      </span>
-                      <div className="flex-1">
-                        <p className="font-semibold">{result.test}</p>
-                        <p className="text-sm mt-1">{result.message}</p>
-                        {result.data && (
-                          <pre className="text-xs mt-2 p-2 bg-muted rounded overflow-x-auto">
-                            {JSON.stringify(result.data, null, 2)}
-                          </pre>
-                        )}
-                      </div>
-                    </div>
-                  </AlertDescription>
-                </Alert>
+                <div key={index} className="flex items-center justify-between p-3 border rounded">
+                  <div className="flex items-center gap-3">
+                    <Badge className={getStatusColor(result.status)}>
+                      {result.status}
+                    </Badge>
+                    <span className="font-medium">{result.test}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">{result.message}</span>
+                    {result.duration && (
+                      <span className="text-xs text-gray-500">({result.duration}ms)</span>
+                    )}
+                  </div>
+                </div>
               ))}
             </div>
           )}
 
-          <div className="mt-6 p-4 bg-muted rounded-lg">
-            <h4 className="font-semibold mb-2">Quick Info:</h4>
-            <ul className="text-sm space-y-1">
-              <li>• User ID: {user?.id || 'Demo Mode - No User'}</li>
-              <li>• Email: {user?.email || 'Demo Mode'}</li>
-              <li>• Supabase URL: {import.meta.env.VITE_SUPABASE_URL || 'Not configured'}</li>
-              <li>• Mode: {user ? 'Authenticated' : 'Demo (No Auth Required)'}</li>
+          <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
+            <strong>What this tests:</strong>
+            <ul className="list-disc list-inside mt-1 space-y-1">
+              <li>Basic database connectivity</li>
+              <li>User authentication status</li>
+              <li>Sticker table read permissions</li>
+              <li>Sticker table insert permissions (RLS policies)</li>
             </ul>
           </div>
         </CardContent>

@@ -32,6 +32,12 @@ export const generateToken = (): string => {
   return `BMW-${timestamp}-${random}`
 }
 
+// Generate a unique scan URL for a token
+export const getScanUrl = (token: string): string => {
+  const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin
+  return `${baseUrl}/t/${token}`
+}
+
 // Generate QR code data URL from token
 export const generateQRCode = (token: string, options: QRCodeOptions = {}): string => {
   const {
@@ -267,13 +273,6 @@ export const stickerTemplates: Record<string, StickerTemplate> = {
   }
 }
 
-// Get scan URL for token
-export const getScanUrl = (token: string): string => {
-  // Use current window location to get the correct port
-  const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin
-  return `${baseUrl}/t/${token}`
-}
-
 // Download canvas as file
 export const downloadCanvas = (canvas: HTMLCanvasElement, filename: string): void => {
   try {
@@ -288,4 +287,103 @@ export const downloadCanvas = (canvas: HTMLCanvasElement, filename: string): voi
     logger.error('Failed to download canvas', error)
     throw new Error('Download failed')
   }
+}
+
+// Bulk download multiple stickers as a ZIP file
+export const downloadStickersAsZip = async (
+  stickers: Array<{ filename: string; dataUrl: string }>,
+  zipFilename: string = 'block-my-wheels-stickers.zip'
+): Promise<void> => {
+  try {
+    logger.info(`[BULK_DOWNLOAD] Starting ZIP creation with ${stickers.length} stickers`)
+    
+    // Dynamically import JSZip to keep bundle size reasonable
+    const { default: JSZip } = await import('jszip')
+    const zip = new JSZip()
+    
+    // Add each sticker to the ZIP
+    stickers.forEach(({ filename, dataUrl }) => {
+      // Convert data URL to blob data
+      const base64Data = dataUrl.split(',')[1]
+      zip.file(filename, base64Data, { base64: true })
+    })
+    
+    // Generate ZIP file
+    logger.info('[BULK_DOWNLOAD] Generating ZIP file...')
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    
+    // Download the ZIP file
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(zipBlob)
+    link.download = zipFilename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    // Clean up object URL
+    URL.revokeObjectURL(link.href)
+    
+    logger.info(`[BULK_DOWNLOAD] ZIP download completed: ${zipFilename}`)
+  } catch (error) {
+    logger.error('Failed to create ZIP download', error)
+    throw new Error('Bulk download failed')
+  }
+}
+
+// Batch generate multiple stickers
+export const generateBatchStickers = async (
+  plates: string[],
+  style: string,
+  template: StickerTemplate,
+  onProgress?: (completed: number, total: number) => void
+): Promise<Array<{ plate: string; token: string; dataUrl: string; success: boolean; error?: string }>> => {
+  const results = []
+  
+  logger.info(`[BATCH_GEN] Starting batch generation for ${plates.length} plates`)
+  
+  for (let i = 0; i < plates.length; i++) {
+    const plate = plates[i].trim().toUpperCase()
+    
+    try {
+      // Use plate as token for QR code
+      const token = plate
+      const scanUrl = getScanUrl(token)
+      
+      // Generate sticker
+      const dataUrl = await generateSticker(scanUrl, plate, template)
+      
+      results.push({
+        plate,
+        token,
+        dataUrl,
+        success: true
+      })
+      
+      logger.info(`[BATCH_GEN] Generated sticker ${i + 1}/${plates.length}: ${plate}`)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      results.push({
+        plate,
+        token: plate,
+        dataUrl: '',
+        success: false,
+        error: errorMessage
+      })
+      
+      logger.error(`[BATCH_GEN] Failed to generate sticker for ${plate}:`, error)
+    }
+    
+    // Report progress
+    if (onProgress) {
+      onProgress(i + 1, plates.length)
+    }
+    
+    // Small delay to prevent overwhelming the browser
+    if (i < plates.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+  }
+  
+  logger.info(`[BATCH_GEN] Batch generation completed. Success: ${results.filter(r => r.success).length}/${plates.length}`)
+  return results
 } 

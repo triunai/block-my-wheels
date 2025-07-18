@@ -193,32 +193,107 @@ export const rpcFunctions = {
     }
   },
 
-  createSticker: async (plate: string, style: string = 'modern', token?: string) => {
+  // Helper function to check if user has a complete profile
+  checkUserProfile: async (userId: string): Promise<{ hasProfile: boolean; profile?: any }> => {
     if (isTemplateMode) {
-      logger.info(`[TEMPLATE MODE] Creating sticker for plate: ${plate}, style: ${style}`)
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      const newToken = token || `BMW${Math.random().toString(36).substr(2, 6).toUpperCase()}`
-      return {
-        id: `mock-sticker-${Date.now()}`,
-        driver_id: 'mock-driver-1',
-        token: newToken,
-        plate: plate,
-        created_at: new Date().toISOString(),
-        style: style,
-        success: true
-      }
+      logger.info(`[TEMPLATE MODE] Skipping profile check for user: ${userId}`)
+      return { hasProfile: true }
     }
 
     try {
-      const { data, error } = await supabase.rpc('create_sticker', { 
-        plate, 
-        style, 
-        token: token || undefined 
-      })
-      if (error) throw error
-      return data
+      logger.info(`[PROFILE_CHECK] Checking profile for user: ${userId}`)
+      
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        logger.error(`[PROFILE_CHECK] Error checking profile:`, error)
+        throw error
+      }
+
+      const hasProfile = !!profile
+      logger.info(`[PROFILE_CHECK] Profile exists: ${hasProfile}`)
+      
+      return { hasProfile, profile }
     } catch (error) {
+      logger.error(`[PROFILE_CHECK] Failed to check profile:`, error)
+      throw error
+    }
+  },
+
+  createSticker: async (plate: string, style: string = 'modern', token?: string, userId?: string) => {
+    logger.info(`[DB_CREATE_STICKER] Template mode status: ${isTemplateMode}`)
+    
+    try {
+      logger.info(`[DB_CREATE_STICKER] Starting creation for plate: ${plate}, style: ${style}, token: ${token}`)
+      
+      let user_id = userId
+      
+      // If no userId provided, try to get it from auth
+      if (!user_id) {
+        logger.info(`[DB_CREATE_STICKER] Getting user auth...`)
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        logger.info(`[DB_CREATE_STICKER] Auth check result:`, { user: user?.id, error: userError })
+        
+        if (userError || !user) {
+          logger.error(`[DB_CREATE_STICKER] Authentication failed:`, userError)
+          throw new Error('User not authenticated')
+        }
+        user_id = user.id
+      } else {
+        logger.info(`[DB_CREATE_STICKER] Using provided userId: ${user_id}`)
+      }
+
+      // Check if user has a complete profile (proper validation)
+      const { hasProfile, profile } = await rpcFunctions.checkUserProfile(user_id)
+      
+      if (!hasProfile) {
+        logger.error(`[DB_CREATE_STICKER] User profile not found for: ${user_id}`)
+        throw new Error('PROFILE_INCOMPLETE: Please complete your profile setup before creating stickers')
+      }
+
+      if (!profile.phone || profile.phone.startsWith('temp-')) {
+        logger.error(`[DB_CREATE_STICKER] User profile incomplete - missing phone: ${user_id}`)
+        throw new Error('PROFILE_INCOMPLETE: Please add your phone number to your profile before creating stickers')
+      }
+
+      // Generate token if not provided
+      const stickerToken = token || `BMW${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+      logger.info(`[DB_CREATE_STICKER] Using token: ${stickerToken}`)
+
+      // Insert sticker with validated user
+      const insertData = {
+        owner_id: user_id,
+        token: stickerToken,
+        plate: plate,
+        style: style,
+        status: 'active'
+      }
+      logger.info(`[DB_CREATE_STICKER] Inserting data:`, insertData)
+
+      const { data, error } = await supabase
+        .from('stickers')
+        .insert(insertData)
+        .select()
+        .single()
+
+      logger.info(`[DB_CREATE_STICKER] Insert result:`, { data, error })
+
+      if (error) {
+        logger.error(`[DB_CREATE_STICKER] Insert failed:`, error)
+        throw error
+      }
+
+      logger.info(`[DB_CREATE_STICKER] Successfully created sticker:`, data)
+      return {
+        ...data,
+        success: true
+      }
+    } catch (error) {
+      logger.error(`[DB_CREATE_STICKER] Operation failed:`, error)
       return handleRpcError(error, 'create sticker')
     }
   },
