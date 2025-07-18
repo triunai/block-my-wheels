@@ -1,10 +1,7 @@
 import React from 'react'
 import { Button } from './ui/button'
 import { QrCode, Users } from 'lucide-react'
-
-interface FooterProps {
-  onNavigation: (page: string) => void
-}
+import { FooterProps } from '../interfaces/components'
 
 export function Footer({ onNavigation }: FooterProps) {
   return (

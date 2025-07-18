@@ -63,9 +63,10 @@ const { supabaseUrl, supabaseAnonKey, isTemplateMode } = validateEnvironment()
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Enhanced error handling wrapper
-const handleRpcError = (error: any, operation: string): never => {
+const handleRpcError = (error: unknown, operation: string): never => {
   logger.error(`Supabase RPC Error in ${operation}`, error)
-  throw new Error(`Failed to ${operation}: ${error.message || 'Unknown error'}`)
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+  throw new Error(`Failed to ${operation}: ${errorMessage}`)
 }
 
 // Mock data for template mode
@@ -192,25 +193,29 @@ export const rpcFunctions = {
     }
   },
 
-  createSticker: async (plate: string, style: string = 'modern') => {
+  createSticker: async (plate: string, style: string = 'modern', token?: string) => {
     if (isTemplateMode) {
       logger.info(`[TEMPLATE MODE] Creating sticker for plate: ${plate}, style: ${style}`)
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000))
-      const newToken = `DEMO${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+      const newToken = token || `BMW${Math.random().toString(36).substr(2, 6).toUpperCase()}`
       return {
         id: `mock-sticker-${Date.now()}`,
         driver_id: 'mock-driver-1',
         token: newToken,
         plate: plate,
         created_at: new Date().toISOString(),
-        qr_code_url: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${newToken}`,
-        style: style
+        style: style,
+        success: true
       }
     }
 
     try {
-      const { data, error } = await supabase.rpc('create_sticker', { plate, style })
+      const { data, error } = await supabase.rpc('create_sticker', { 
+        plate, 
+        style, 
+        token: token || undefined 
+      })
       if (error) throw error
       return data
     } catch (error) {

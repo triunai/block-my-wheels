@@ -2,10 +2,7 @@ import React from 'react'
 import { Button } from './ui/button'
 import { QrCode, Car } from 'lucide-react'
 import { FadeawayCars } from './animations'
-
-interface HeroSectionProps {
-  onNavigation: (page: string) => void
-}
+import { HeroSectionProps } from '../interfaces/components'
 
 export function HeroSection({ onNavigation }: HeroSectionProps) {
   return (

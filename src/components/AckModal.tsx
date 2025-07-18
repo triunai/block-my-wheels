@@ -11,12 +11,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Clock } from 'lucide-react'
 import type { Incident } from '@/lib/supabaseClient'
-
-interface AckModalProps {
-  incident: Incident | null
-  isOpen: boolean
-  onOpenChange: (open: boolean) => void
-}
+import { AckModalProps } from '../interfaces/components'
 
 export function AckModal({ incident, isOpen, onOpenChange }: AckModalProps) {
   const [timeLeft, setTimeLeft] = useState<string>('')

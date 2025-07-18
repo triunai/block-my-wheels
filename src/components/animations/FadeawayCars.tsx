@@ -1,22 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-interface FadeawayCarProps {
-  delay?: number;
-  duration?: number;
-  direction?: "left" | "right";
-  lane?: number;
-  emoji?: string;
-  color?: string;
-  size?: "sm" | "md" | "lg";
-}
-
-interface FadeawayCarsProps {
-  className?: string;
-  carCount?: number;
-  speed?: "slow" | "medium" | "fast";
-  density?: "light" | "medium" | "heavy";
-}
+import { FadeawayCarProps, FadeawayCarsProps } from '../../interfaces/components'
 
 const carEmojis = ["🚗", "🚙", "🚐", "🚕", "🚖", "🏎️", "🚓", "🚑"];
 const carColors = ["#ff6b6b", "#4ecdc4", "#45b7d1", "#96ceb4", "#feca57", "#ff9ff3", "#54a0ff", "#5f27cd"];

@@ -57,7 +57,7 @@ export const useAckIncident = () => {
 
 export const useCreateSticker = () => {
   return useMutation({
-    mutationFn: ({ plate, style }: { plate: string; style: string }) =>
-      rpcFunctions.createSticker(plate, style),
+    mutationFn: ({ plate, style, token }: { plate: string; style: string; token?: string }) =>
+      rpcFunctions.createSticker(plate, style, token),
   })
 }

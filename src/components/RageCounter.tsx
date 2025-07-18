@@ -5,12 +5,7 @@ import { Button } from './ui/button'
 import { useNotifyDriver } from '../lib/hooks/useIncidents'
 import { toast } from '../hooks/use-toast'
 import { logger } from '../lib/utils'
-
-interface RageCounterProps {
-  token: string
-  initialRage?: number
-  disabled?: boolean
-}
+import { RageCounterProps } from '../interfaces/components'
 
 const rageEmojis = ['😠', '😡', '🤬', '🔥', '💀']
 

@@ -10,10 +10,7 @@ import { AckModal } from '../../components/AckModal'
 import { LocaleSwitcher } from '../../components/LocaleSwitcher'
 import { useScanPageData } from '../../lib/hooks/useIncidents'
 import { Skeleton } from '../../components/ui/skeleton'
-
-interface ScanPageProps {
-  token: string
-}
+import { ScanPageProps } from '../../interfaces/components'
 
 export function ScanPage({ token }: ScanPageProps) {
   const { data, isLoading, error } = useScanPageData(token)
