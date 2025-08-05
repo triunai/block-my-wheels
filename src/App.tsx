@@ -8,16 +8,14 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ThemeProvider } from "./lib/darkMode";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute, AdminRoute, DriverRoute } from "./components/ProtectedRoute";
-import Index from "./pages/core/Index";
+
 import NotFound from "./pages/core/NotFound";
 import { ScanPage } from "./pages/utilities/ScanPage";
 import { DriverDashboard } from "./pages/dashboards/DriverDashboard";
 import { StickerGenerator } from "./pages/utilities/StickerGenerator";
 import { AdminDashboard } from "./pages/dashboards/AdminDashboard";
 import { LandingPage } from "./components/LandingPage";
-import AnimationDemo from "./pages/animations/AnimationDemo";
-import TrafficHeroDemo from "./pages/animations/TrafficHeroDemo";
-import EpicShowcase from "./pages/animations/EpicShowcase";
+
 import { Login } from "./pages/auth/Login";
 import { Signup } from "./pages/auth/Signup";
 import { ForgotPassword } from "./pages/auth/ForgotPassword";
@@ -64,11 +62,8 @@ const App = () => (
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
-                <Route path="/animations" element={<AnimationDemo />} />
-                <Route path="/traffic" element={<TrafficHeroDemo />} />
-                <Route path="/3d" element={<EpicShowcase />} />
+
                 <Route path="/t/:token" element={<ScanPageWrapper />} />
-                <Route path="/legacy" element={<Index />} />
                 
                 {/* All routes now public for demo */}
                 <Route path="/stickers" element={<StickerGenerator />} />

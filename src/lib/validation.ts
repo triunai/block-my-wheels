@@ -1,4 +1,4 @@
-import { logger } from './utils';
+import { logger } from './utils'
 
 // Input sanitization utilities
 export const sanitize = {
@@ -31,12 +31,12 @@ export const sanitize = {
 
   // Sanitize numeric input
   number: (input: any): number => {
-    const num = Number(input);
+    const num = Number(input)
     if (isNaN(num)) {
-      logger.warn('sanitize.number received non-numeric input', { input, type: typeof input });
-      return 0;
+      logger.warn('sanitize.number received non-numeric input', { input, type: typeof input })
+      return 0
     }
-    return Math.max(0, Math.floor(num)); // Ensure positive integer
+    return Math.max(0, Math.floor(num)) // Ensure positive integer
   }
 };
 
@@ -85,11 +85,11 @@ export const validate = {
 // Combined sanitize and validate function
 export const sanitizeAndValidate = {
   token: (input: string): { value: string; isValid: boolean } => {
-    const sanitized = sanitize.token(input);
+    const sanitized = sanitize.token(input)
     return {
       value: sanitized,
       isValid: validate.token(sanitized)
-    };
+    }
   },
 
   licensePlate: (input: string): { value: string; isValid: boolean } => {
