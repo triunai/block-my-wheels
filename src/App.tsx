@@ -71,7 +71,7 @@ const App = () => (
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/diagnostics" element={<DatabaseDiagnostics />} />
                 <Route path="/profile" element={<ProfileManager />} />
-                <Route path="/quick-diagnostic" element={<QuickDiagnostic />} />
+
                 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
