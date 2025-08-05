@@ -1,27 +1,26 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
-import { Input } from '../../components/ui/input'
-import { Label } from '../../components/ui/label'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '../../components/ui/dialog'
 import { useDriverIncidents, useAckIncident } from '../../lib/hooks/useIncidents'
 import { toast } from '../../hooks/use-toast'
-import { Clock, Car, Bell, User } from 'lucide-react'
+import { User } from 'lucide-react'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { Header } from '../../components/Header'
 import { useAuth } from '../../contexts/AuthContext'
 import type { Incident } from '../../lib/supabaseClient'
 import { supabase } from '../../lib/supabaseClient'
-import { Link } from 'react-router-dom'
+
+// Dashboard components
+import { ProfileSetupCard } from '../../components/dashboard/ProfileSetupCard'
+import { DashboardStats } from '../../components/dashboard/DashboardStats'
+import { IncidentsList } from '../../components/dashboard/IncidentsList'
+import { AcknowledgeDialog } from '../../components/dashboard/AcknowledgeDialog'
+
+// Utils
+import { formatTimeAgo } from '../../lib/utils/timeUtils'
+import { getRageEmoji } from '../../lib/utils/rageUtils'
 
 export function DriverDashboard() {
   const { user, profile, refreshProfile } = useAuth()
@@ -88,19 +87,7 @@ export function DriverDashboard() {
     }
   }
 
-  const formatTimeAgo = (dateString: string) => {
-    const diff = Date.now() - new Date(dateString).getTime()
-    const minutes = Math.floor(diff / (1000 * 60))
-    if (minutes < 1) return 'Just now'
-    if (minutes < 60) return `${minutes}m ago`
-    const hours = Math.floor(minutes / 60)
-    return `${hours}h ago`
-  }
 
-  const getRageDisplay = (rage: number) => {
-    const emojis = ['😐', '😠', '😡', '🤬', '🔥']
-    return emojis[Math.min(rage, 4)] || '😐'
-  }
 
   if (isLoading) {
     return (
@@ -143,193 +130,34 @@ export function DriverDashboard() {
 
           {/* Profile Creation Section */}
           {!profile && (
-            <Card className="mb-6 border-orange-200 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-800">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-orange-800 dark:text-orange-200 mb-2">
-                      Profile Setup Required
-                    </h3>
-                    <p className="text-sm text-orange-700 dark:text-orange-300">
-                      Complete your profile setup to access all features, including incident management and sticker generation.
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleCreateProfile}
-                      disabled={isCreatingProfile}
-                      className="bg-orange-600 hover:bg-orange-700 text-white"
-                    >
-                      {isCreatingProfile ? 'Creating...' : 'Create Profile'}
-                    </Button>
-                    <Button
-                      onClick={async () => {
-                        const { data, error } = await supabase
-                          .from('user_profiles')
-                          .select('count')
-                          .single()
-                        
-                        if (error) {
-                          toast({
-                            title: "Database Error",
-                            description: `${error.message} (${error.code})`,
-                            variant: "destructive",
-                          })
-                        } else {
-                          toast({
-                            title: "Database Connected!",
-                            description: "Connection successful",
-                          })
-                        }
-                      }}
-                      variant="outline"
-                    >
-                      Test DB
-                    </Button>
-                    <Link to="/diagnostics">
-                      <Button variant="outline" className="ml-2">
-                        Run Diagnostics
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <ProfileSetupCard
+              onCreateProfile={handleCreateProfile}
+              isCreatingProfile={isCreatingProfile}
+            />
           )}
 
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Card>
-              <CardContent className="p-4 text-center">
-                <Bell className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-                <div className="text-2xl font-bold">{incidents?.length || 0}</div>
-                <div className="text-sm text-gray-600">Open Incidents</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <Car className="w-8 h-8 mx-auto mb-2 text-green-600" />
-                <div className="text-2xl font-bold">1</div>
-                <div className="text-sm text-gray-600">Active Stickers</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <Clock className="w-8 h-8 mx-auto mb-2 text-orange-600" />
-                <div className="text-2xl font-bold">
-                  {incidents?.reduce((acc, inc) => acc + inc.rage, 0) || 0}
-                </div>
-                <div className="text-sm text-gray-600">Total Rage Points</div>
-              </CardContent>
-            </Card>
-          </div>
+          <DashboardStats incidents={incidents} activeStickers={1} />
 
           {/* Incidents List */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Active Incidents</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!incidents || incidents.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Car className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium mb-2">No active incidents</p>
-                  <p className="text-sm">
-                    {profile 
-                      ? "Your vehicle is clear! 🎉" 
-                      : "Once your profile is set up, you'll see any vehicle blocking notifications here."
-                    }
-                  </p>
-                  {!profile && (
-                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-2">
-                      Profile setup is in progress - hang tight!
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {incidents.map((incident) => (
-                    <div
-                      key={incident.id}
-                      className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="destructive">Active</Badge>
-                            <span className="text-sm text-gray-500">
-                              {formatTimeAgo(incident.created_at)}
-                            </span>
-                          </div>
-                          
-                          <div className="flex items-center gap-4">
-                            <div>
-                              <div className="font-medium">
-                                Vehicle: {incident.sticker?.plate ?? 'Unknown'}
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                Urgency: {getRageDisplay(incident.rage)} ({incident.rage})
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <Dialog open={isAckDialogOpen} onOpenChange={setIsAckDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button
-                              onClick={() => setSelectedIncident(incident)}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              Acknowledge
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Acknowledge Incident</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <p className="text-sm text-gray-600">
-                                Let the person know you're on your way to move your vehicle.
-                              </p>
-                              
-                              <div>
-                                <Label htmlFor="eta">Estimated arrival time (minutes)</Label>
-                                <Input
-                                  id="eta"
-                                  type="number"
-                                  placeholder="e.g. 5"
-                                  value={etaMinutes}
-                                  onChange={(e) => setEtaMinutes(e.target.value)}
-                                  className="mt-1"
-                                />
-                              </div>
-                              
-                              <div className="flex gap-2">
-                                <Button
-                                  onClick={handleAcknowledge}
-                                  disabled={ackMutation.isPending}
-                                  className="flex-1"
-                                >
-                                  {ackMutation.isPending ? 'Acknowledging...' : 'Acknowledge'}
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  onClick={() => setIsAckDialogOpen(false)}
-                                  className="flex-1"
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <IncidentsList
+            incidents={incidents}
+            isLoading={isLoading}
+            error={null}
+            formatTimeAgo={formatTimeAgo}
+            getRageEmoji={getRageEmoji}
+            onSelectIncident={setSelectedIncident}
+          />
+
+          {/* Acknowledge Dialog */}
+          <AcknowledgeDialog
+            isOpen={isAckDialogOpen}
+            onOpenChange={setIsAckDialogOpen}
+            etaMinutes={etaMinutes}
+            onEtaChange={setEtaMinutes}
+            onAcknowledge={handleAcknowledge}
+            isPending={ackMutation.isPending}
+          />
         </div>
       </div>
     </div>
