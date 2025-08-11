@@ -134,6 +134,8 @@ const mockIncidents: Incident[] = [
   }
 ]
 
+// ✅ REMOVED: triggerRageWebhook function - not needed since Supabase RPC handles webhooks
+
 // RPC function wrappers with template mode support
 export const rpcFunctions = {
   fetchScanPage: async (token: string): Promise<ScanPageData> => {
@@ -148,7 +150,7 @@ export const rpcFunctions = {
     }
 
     try {
-      const { data, error } = await supabase.rpc('fetch_scan_page', { token })
+      const { data, error } = await supabase.rpc('fetch_scan_page', { p_token: token })
       if (error) throw error
       return data
     } catch (error) {
@@ -165,10 +167,84 @@ export const rpcFunctions = {
     }
 
     try {
-      const { data, error } = await supabase.rpc('notify_driver', { token, rage })
-      if (error) throw error
+      logger.info(`[NOTIFY_DRIVER_START] Creating incident for token: ${token}, rage: ${rage}`)
+      
+      // First, get the sticker owner's phone number for webhook
+      const { data: stickerData, error: stickerError } = await supabase
+        .from('stickers')
+        .select(`
+          owner_id,
+          user_profiles!inner(phone)
+        `)
+        .eq('token', token)
+        .eq('status', 'active')
+        .single()
+      
+      if (stickerError || !stickerData) {
+        logger.error('[NOTIFY_DRIVER] Failed to get sticker owner phone:', stickerError)
+        throw new Error('Invalid sticker or unable to get owner details')
+      }
+      
+      const rawPhoneNumber = (stickerData.user_profiles as any).phone
+      logger.info(`[NOTIFY_DRIVER] Found raw phone: ${rawPhoneNumber}`)
+      
+      // 🆕 FIX: Format phone number correctly for WhatsApp
+      let formattedPhone = rawPhoneNumber
+      if (rawPhoneNumber && !rawPhoneNumber.startsWith('+')) {
+        if (rawPhoneNumber.startsWith('0')) {
+          // Convert 0123456789 -> +60123456789
+          formattedPhone = '+60' + rawPhoneNumber.substring(1)
+        } else if (rawPhoneNumber.startsWith('60')) {
+          // Convert 60123456789 -> +60123456789  
+          formattedPhone = '+' + rawPhoneNumber
+        } else {
+          // Assume Malaysian number, add +60
+          formattedPhone = '+60' + rawPhoneNumber
+        }
+      }
+      
+      logger.info(`[NOTIFY_DRIVER] Formatted phone: ${rawPhoneNumber} -> ${formattedPhone}`)
+      
+      // Create incident in database (simplified - no webhook stuff)
+      const { data, error } = await supabase.rpc('handle_new_ping', { 
+        p_token: token, 
+        p_rage_level: rage,
+        p_scanner_ip_text: null
+      })
+      
+      logger.info(`[NOTIFY_DRIVER_RESPONSE] RPC returned:`, { data, error })
+      
+      if (error) {
+        logger.error(`[NOTIFY_DRIVER_ERROR] RPC error:`, error)
+        throw error
+      }
+      
+      // 🎯 SIMPLE: Make webhook call directly from client
+      logger.info(`[WEBHOOK_START] Sending webhook to n8n...`)
+      
+      const webhookPayload = {
+        rageCounter: rage,
+        phoneNumber: formattedPhone
+      }
+      
+      const webhookResponse = await fetch('https://parallellium.app.n8n.cloud/webhook-test/whatsapp-rage-agent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookPayload)
+      })
+      
+      if (webhookResponse.ok) {
+        logger.info(`[WEBHOOK_SUCCESS] Webhook sent successfully!`)
+      } else {
+        logger.error(`[WEBHOOK_FAILED] Webhook failed:`, webhookResponse.status, webhookResponse.statusText)
+        // Don't throw error - incident was created, webhook failure shouldn't break the flow
+      }
+      
       return data
     } catch (error) {
+      logger.error(`[NOTIFY_DRIVER_EXCEPTION] Exception occurred:`, error)
       return handleRpcError(error, 'notify driver')
     }
   },
@@ -194,7 +270,7 @@ export const rpcFunctions = {
   },
 
   // Helper function to check if user has a complete profile
-  checkUserProfile: async (userId: string): Promise<{ hasProfile: boolean; profile?: any }> => {
+  checkUserProfile: async (userId: string): Promise<{ hasProfile: boolean; profile?: unknown }> => {
     if (isTemplateMode) {
       logger.info(`[TEMPLATE MODE] Skipping profile check for user: ${userId}`)
       return { hasProfile: true }

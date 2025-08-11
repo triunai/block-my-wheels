@@ -3,6 +3,7 @@ import { User, AuthError, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabaseClient'
 import { logger } from '../lib/utils'
 import { UserProfile, AuthContextType, AuthProviderProps } from '../interfaces/auth'
+import { sanitizeAndValidate, phoneUtils } from '../lib/validation'
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
@@ -55,6 +56,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user_type: 'driver',
         phone: '+1234567890',
         total_incidents: 0,
+        whatsapp_onboarded: false,  // 🆕 Template mode user not onboarded
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
@@ -176,6 +178,59 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
+  // 🆕 NEW: Trigger onboarding webhook
+  const triggerOnboardingWebhook = async (userId: string, phone: string): Promise<boolean> => {
+    logger.info(`[ONBOARDING_WEBHOOK_START] User: ${userId}, Phone: ${phone}`)
+    
+    try {
+      // Validate and sanitize phone number first
+      const phoneResult = sanitizeAndValidate.malaysianPhone(phone)
+      
+      if (!phoneResult.isValid) {
+        logger.error('[ONBOARDING_WEBHOOK] Invalid phone number provided', { phone, sanitized: phoneResult.value })
+        return false
+      }
+      
+      // 🆕 SIMPLIFIED: Prepare webhook payload to match your n8n flow
+      const webhookPayload = {
+        phoneNumber: phoneResult.value  // +60123456789
+      }
+      
+      logger.info('[ONBOARDING_WEBHOOK] Prepared payload:', webhookPayload)
+      
+      // 🆕 Your actual n8n webhook URL (first contact/onboarding)
+      const webhookUrl = 'https://parallellium.app.n8n.cloud/webhook-test/whatsapp-initial-onboarding'
+      
+      // 🆕 ENABLED: Make actual webhook call to n8n
+      try {
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(webhookPayload)
+        })
+        
+        if (!response.ok) {
+          logger.error('[ONBOARDING_WEBHOOK] HTTP error:', { status: response.status, statusText: response.statusText })
+          return false
+        }
+        
+        const result = await response.json()
+        logger.info('[ONBOARDING_WEBHOOK_END] Success:', result)
+        return true
+        
+      } catch (fetchError) {
+        logger.error('[ONBOARDING_WEBHOOK] Fetch failed:', fetchError)
+        return false
+      }
+      
+    } catch (error) {
+      logger.error('[ONBOARDING_WEBHOOK_END] Failed with exception:', error)
+      return false
+    }
+  }
+
   // Refresh profile data
   const refreshProfile = async () => {
     if (!user) {
@@ -198,7 +253,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logger.info('[REFRESH_PROFILE_END] Process complete.')
   }
 
-  // Sign up new user (admin accounts must be created via secure channels)
+  // 🆕 ENHANCED: Sign up new user with Malaysian phone validation and onboarding webhook
   const signUp = async (
     email: string, 
     password: string, 
@@ -208,13 +263,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       logger.info('[SIGNUP_START] Starting signup process', { email, phone, userType })
       
+      // 🆕 NEW: Validate Malaysian phone number first
+      const phoneResult = sanitizeAndValidate.malaysianPhone(phone)
+      
+      if (!phoneResult.isValid) {
+        logger.error('[SIGNUP_PHONE_ERROR] Invalid Malaysian phone number', { 
+          original: phone, 
+          sanitized: phoneResult.value 
+        })
+        return { 
+          user: null, 
+          error: { 
+            message: 'Please enter a valid Malaysian phone number (e.g., 0123456789 or +60123456789)',
+            name: 'InvalidPhoneError'
+          } as AuthError 
+        }
+      }
+      
+      logger.info('[SIGNUP_PHONE_SUCCESS] Phone validated successfully', { 
+        original: phone,
+        formatted: phoneResult.value,
+        whatsappId: phoneResult.whatsappId 
+      })
+      
       // Sign up with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            phone,
+            phone: phoneResult.value,    // Store formatted phone
             user_type: userType
           }
         }
@@ -228,10 +306,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       logger.info('[SIGNUP_AUTH_SUCCESS] User auth created successfully', { userId: authData.user?.id })
 
       if (authData.user) {
-        // Create user profile with detailed logging
+        // 🆕 ENHANCED: Create user profile with Malaysian phone and onboarding tracking
         logger.info('[SIGNUP_PROFILE_START] Creating user profile...', {
           userId: authData.user.id,
-          phone,
+          originalPhone: phone,
+          formattedPhone: phoneResult.value,
+          whatsappId: phoneResult.whatsappId,
           userType
         })
         
@@ -240,8 +320,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .insert([{
             id: authData.user.id,
             user_type: userType,
-            phone,
-            total_incidents: 0
+            phone: phoneResult.value,        // 🆕 Use formatted phone
+            wa_id: phoneResult.whatsappId,   // 🆕 Store WhatsApp ID
+            total_incidents: 0,
+            whatsapp_onboarded: false        // 🆕 Start as not onboarded
           }])
           .select()
           .single()
@@ -265,6 +347,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         } else {
           logger.info('[SIGNUP_PROFILE_SUCCESS] User profile created successfully', profileData)
+          
+          // 🆕 NEW: Trigger onboarding webhook
+          logger.info('[SIGNUP_ONBOARDING_START] Triggering onboarding webhook...')
+          const webhookSuccess = await triggerOnboardingWebhook(authData.user.id, phoneResult.value)
+          
+          if (webhookSuccess) {
+            logger.info('[SIGNUP_ONBOARDING_SUCCESS] Onboarding webhook triggered successfully')
+          } else {
+            logger.warn('[SIGNUP_ONBOARDING_FAILED] Onboarding webhook failed, but signup continues')
+            // Note: We don't fail the signup if webhook fails - user can still use the app
+          }
         }
 
         logger.info('[SIGNUP_COMPLETE] User signed up successfully')
@@ -422,6 +515,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
+  // 🆕 NEW: Mark user as onboarded (called by onboarding completion endpoint)
+  const markUserOnboarded = async (userId: string): Promise<boolean> => {
+    logger.info(`[MARK_ONBOARDED_START] User: ${userId}`)
+    
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ whatsapp_onboarded: true })
+        .eq('id', userId)
+      
+      if (error) {
+        logger.error('[MARK_ONBOARDED_ERROR] Failed to update onboarding status:', error)
+        return false
+      }
+      
+      // Refresh the current profile if it's the same user
+      if (user && user.id === userId) {
+        logger.info('[MARK_ONBOARDED] Refreshing current user profile...')
+        await refreshProfile()
+      }
+      
+      logger.info('[MARK_ONBOARDED_END] Success - user marked as onboarded')
+      return true
+      
+    } catch (error) {
+      logger.error('[MARK_ONBOARDED_END] Failed with exception:', error)
+      return false
+    }
+  }
+
   // Refresh the current session
   const refreshSession = async () => {
     try {
@@ -514,7 +637,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     getSession,
     refreshSession,
     testDatabaseConnection,
-    createProfileViaRPC // Also exposing this for manual testing if needed
+    createProfileViaRPC, // Also exposing this for manual testing if needed
+    triggerOnboardingWebhook, // 🆕 NEW: For manual onboarding trigger
+    markUserOnboarded // 🆕 NEW: For onboarding completion
   }
 
   return (

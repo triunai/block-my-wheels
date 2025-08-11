@@ -8,6 +8,7 @@ export interface UserProfile {
   wa_id?: string
   total_incidents: number
   avg_response_time_minutes?: number
+  whatsapp_onboarded: boolean
   created_at: string
   updated_at: string
 }
@@ -26,6 +27,8 @@ export interface AuthContextType {
   refreshSession: () => Promise<{ session: Session | null; error: AuthError | null }>
   testDatabaseConnection: () => Promise<boolean>
   createProfileViaRPC: (userId: string) => Promise<UserProfile | null>
+  triggerOnboardingWebhook: (userId: string, phone: string) => Promise<boolean> // 🆕 NEW
+  markUserOnboarded: (userId: string) => Promise<boolean> // 🆕 NEW
 }
 
 export interface AuthProviderProps {

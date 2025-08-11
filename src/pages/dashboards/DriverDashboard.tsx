@@ -108,7 +108,7 @@ export function DriverDashboard() {
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                🚗 Driver Dashboard
+                Driver Dashboard
               </h1>
               <p className="text-gray-600 dark:text-gray-300">
                 Welcome back, {user.email}
