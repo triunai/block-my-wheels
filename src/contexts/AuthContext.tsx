@@ -199,7 +199,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       logger.info('[ONBOARDING_WEBHOOK] Prepared payload:', webhookPayload)
       
       // 🆕 Your actual n8n webhook URL (first contact/onboarding)
-      const webhookUrl = 'https://parallellium.app.n8n.cloud/webhook-test/whatsapp-initial-onboarding'
+      const webhookUrl = 'https://parallellium.app.n8n.cloud/webhook/whatsapp-initial-onboarding'
       
       // 🆕 ENABLED: Make actual webhook call to n8n
       try {

@@ -227,7 +227,7 @@ export const rpcFunctions = {
         phoneNumber: formattedPhone
       }
       
-      const webhookResponse = await fetch('https://parallellium.app.n8n.cloud/webhook-test/whatsapp-rage-agent', {
+      const webhookResponse = await fetch('https://parallellium.app.n8n.cloud/webhook/whatsapp-rage-agent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
