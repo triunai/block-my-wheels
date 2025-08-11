@@ -27,12 +27,12 @@ export function LocaleSwitcher() {
           {currentLang.flag} {currentLang.code.toUpperCase()}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="bg-white">
+      <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         {languages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
             onClick={() => setCurrentLang(lang)}
-            className="cursor-pointer"
+            className="cursor-pointer text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
           >
             {lang.flag} {lang.name}
           </DropdownMenuItem>

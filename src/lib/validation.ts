@@ -1,4 +1,4 @@
-import { logger } from './utils';
+import { logger } from './utils'
 
 // Input sanitization utilities
 export const sanitize = {
@@ -8,7 +8,7 @@ export const sanitize = {
       logger.warn('sanitize.string received non-string input', { input, type: typeof input });
       return '';
     }
-    return input.trim().replace(/[<>\"'&]/g, '');
+    return input.trim().replace(/[<>"'&]/g, '');
   },
 
   // Sanitize license plate format
@@ -29,14 +29,39 @@ export const sanitize = {
     return input.trim().replace(/[^a-zA-Z0-9]/g, '');
   },
 
-  // Sanitize numeric input
-  number: (input: any): number => {
-    const num = Number(input);
-    if (isNaN(num)) {
-      logger.warn('sanitize.number received non-numeric input', { input, type: typeof input });
-      return 0;
+  // 🆕 NEW: Sanitize Malaysian phone number
+  malaysianPhone: (input: string): string => {
+    if (typeof input !== 'string') {
+      logger.warn('sanitize.malaysianPhone received non-string input', { input, type: typeof input });
+      return '';
     }
-    return Math.max(0, Math.floor(num)); // Ensure positive integer
+    
+    // Remove all non-digit characters except +
+    let cleaned = input.trim().replace(/[^\d+]/g, '');
+    
+    // Handle different input formats
+    if (cleaned.startsWith('60')) {
+      // Add + if missing: 60123456789 -> +60123456789
+      cleaned = '+' + cleaned;
+    } else if (cleaned.startsWith('0')) {
+      // Convert local format: 0123456789 -> +60123456789
+      cleaned = '+60' + cleaned.substring(1);
+    } else if (!cleaned.startsWith('+60')) {
+      // Assume it's a local number without 0: 123456789 -> +60123456789
+      cleaned = '+60' + cleaned;
+    }
+    
+    return cleaned;
+  },
+
+  // Sanitize numeric input
+  number: (input: unknown): number => {
+    const num = Number(input)
+    if (isNaN(num)) {
+      logger.warn('sanitize.number received non-numeric input', { input, type: typeof input })
+      return 0
+    }
+    return Math.max(0, Math.floor(num)) // Ensure positive integer
   }
 };
 
@@ -60,14 +85,43 @@ export const validate = {
     return /^[A-Z0-9\s-]{2,15}$/.test(plate.trim().toUpperCase());
   },
 
+  // 🆕 NEW: Validate Malaysian phone number
+  malaysianPhone: (phone: string): boolean => {
+    if (!phone || typeof phone !== 'string') {
+      return false;
+    }
+    
+    const cleaned = phone.trim();
+    
+    // Malaysian phone number formats:
+    // Mobile: +60123456789, +60143456789, +60173456789, +60183456789, +60193456789
+    // Landline KL: +60312345678, +60387654321
+    // Landline other states: +603xxxxxxxx, +604xxxxxxxx, +605xxxxxxxx, etc.
+    
+    const mobileRegex = /^\+60(1[0-9])\d{7,8}$/;          // Mobile numbers
+    const landlineRegex = /^\+60[3-9]\d{7,8}$/;           // Landline numbers
+    
+    return mobileRegex.test(cleaned) || landlineRegex.test(cleaned);
+  },
+
+  // Keep existing generic phone validation for backward compatibility
+  phone: (phone: string): boolean => {
+    if (!phone || typeof phone !== 'string') {
+      return false;
+    }
+    // Generic international phone validation
+    const cleaned = phone.replace(/[\s()-]/g, '');
+    return cleaned.length >= 10 && /^\+?\d+$/.test(cleaned);
+  },
+
   // Validate rage level
-  rageLevel: (rage: any): boolean => {
+  rageLevel: (rage: unknown): boolean => {
     const num = Number(rage);
     return !isNaN(num) && num >= 0 && num <= 10;
   },
 
   // Validate ETA minutes
-  etaMinutes: (eta: any): boolean => {
+  etaMinutes: (eta: unknown): boolean => {
     const num = Number(eta);
     return !isNaN(num) && num >= 0 && num <= 1440; // Max 24 hours
   },
@@ -85,11 +139,11 @@ export const validate = {
 // Combined sanitize and validate function
 export const sanitizeAndValidate = {
   token: (input: string): { value: string; isValid: boolean } => {
-    const sanitized = sanitize.token(input);
+    const sanitized = sanitize.token(input)
     return {
       value: sanitized,
       isValid: validate.token(sanitized)
-    };
+    }
   },
 
   licensePlate: (input: string): { value: string; isValid: boolean } => {
@@ -100,7 +154,22 @@ export const sanitizeAndValidate = {
     };
   },
 
-  rageLevel: (input: any): { value: number; isValid: boolean } => {
+  // 🆕 NEW: Combined Malaysian phone sanitization and validation
+  malaysianPhone: (input: string): { value: string; isValid: boolean; whatsappId: string } => {
+    const sanitized = sanitize.malaysianPhone(input);
+    const isValid = validate.malaysianPhone(sanitized);
+    
+    // Convert to WhatsApp ID format (remove + prefix)
+    const whatsappId = sanitized.startsWith('+') ? sanitized.substring(1) : sanitized;
+    
+    return {
+      value: sanitized,        // +60123456789
+      isValid,
+      whatsappId              // 60123456789
+    };
+  },
+
+  rageLevel: (input: unknown): { value: number; isValid: boolean } => {
     const sanitized = sanitize.number(input);
     return {
       value: sanitized,
@@ -108,11 +177,36 @@ export const sanitizeAndValidate = {
     };
   },
 
-  etaMinutes: (input: any): { value: number; isValid: boolean } => {
+  etaMinutes: (input: unknown): { value: number; isValid: boolean } => {
     const sanitized = sanitize.number(input);
     return {
       value: sanitized,
       isValid: validate.etaMinutes(sanitized)
     };
+  }
+};
+
+// 🆕 NEW: Helper functions for phone number conversion
+export const phoneUtils = {
+  // Convert phone to WhatsApp ID format
+  toWhatsAppId: (phone: string): string => {
+    const cleaned = sanitize.malaysianPhone(phone);
+    return cleaned.startsWith('+') ? cleaned.substring(1) : cleaned;
+  },
+  
+  // Format phone for display
+  formatDisplay: (phone: string): string => {
+    const cleaned = sanitize.malaysianPhone(phone);
+    if (cleaned.length === 13 && cleaned.startsWith('+60')) {
+      // +60123456789 -> +60 12-345 6789
+      return `${cleaned.substring(0, 3)} ${cleaned.substring(3, 5)}-${cleaned.substring(5, 8)} ${cleaned.substring(8)}`;
+    }
+    return cleaned;
+  },
+  
+  // Check if it's a mobile vs landline
+  isMobile: (phone: string): boolean => {
+    const cleaned = sanitize.malaysianPhone(phone);
+    return /^\+60(1[0-9])\d{7,8}$/.test(cleaned);
   }
 }; 

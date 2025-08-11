@@ -21,7 +21,6 @@ export const DemoNavigation: React.FC = () => {
       title: 'Public Pages',
       items: [
         { path: '/', label: 'Landing Page', icon: Home, description: 'Main landing page' },
-        { path: '/animations', label: 'Animations Demo', icon: Sparkles, description: 'Cool animations showcase' },
         { path: '/login', label: 'Login', icon: LogIn, description: 'User login page' },
         { path: '/signup', label: 'Sign Up', icon: UserPlus, description: 'User registration' },
       ]
