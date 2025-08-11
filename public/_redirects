@@ -1,0 +1,8 @@
+# Redirect all routes to index.html for client-side routing
+# This ensures React Router can handle all routes in production
+
+# API routes (if any) should be handled first
+/api/* /api/* 200
+
+# All other routes should fallback to index.html
+/* /index.html 200

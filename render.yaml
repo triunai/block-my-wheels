@@ -1,0 +1,14 @@
+# Render.com deployment configuration
+# This ensures proper SPA routing for React Router
+
+services:
+  - type: web
+    name: block-my-wheels
+    env: static
+    buildCommand: npm run build
+    staticPublishPath: ./dist
+    # Enable SPA routing - all requests fallback to index.html
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
