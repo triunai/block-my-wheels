@@ -83,3 +83,21 @@ export interface ProfileResponse {
   }
   error?: string
 }
+
+// WhatsApp Message (Outgoing from n8n)
+export interface WhatsAppMessageRequest {
+  messaging_product: 'whatsapp'
+  to: string
+  type: 'text'
+  text: {
+    body: string
+  }
+}
+
+// n8n Webhook Response (Back to Supabase)
+export interface N8nWebhookResponse {
+  success: boolean
+  message_id?: string
+  delivery_status?: 'sent' | 'delivered' | 'failed'
+  error?: string
+}

@@ -18,7 +18,7 @@ export function RageCounter({ token, initialRage = 0, disabled }: RageCounterPro
     setRageLevel(newRage)
     
     try {
-      await notifyMutation.mutateAsync({ token, rage: 1 })
+      await notifyMutation.mutateAsync({ token, rage: newRage })
       toast({
         title: `Rage level increased! ${rageEmojis[Math.min(newRage - 1, 4)] || '😠'}`,
         description: "The driver has been notified of your urgency.",
