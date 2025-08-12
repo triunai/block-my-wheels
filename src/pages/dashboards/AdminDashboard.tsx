@@ -5,6 +5,7 @@ import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Badge } from '../../components/ui/badge'
 import { Header } from '../../components/Header'
+import { FadeawayCars } from '../../components/animations/FadeawayCars'
 import { Users, QrCode, Bell, TrendingUp } from 'lucide-react'
 
 export function AdminDashboard() {
@@ -17,9 +18,18 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950 relative overflow-hidden">
       <Header />
-      <div className="p-4">
+      
+      {/* Animated Car Background */}
+      <FadeawayCars 
+        carCount={6}
+        speed="slow"
+        density="light"
+        className="opacity-20 dark:opacity-10"
+      />
+      
+      <div className="p-4 relative z-10">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-8">
@@ -34,8 +44,8 @@ export function AdminDashboard() {
                 <div className="flex items-center">
                   <Users className="w-8 h-8 text-blue-600" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Total Drivers</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.totalDrivers.toLocaleString()}</p>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Drivers</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.totalDrivers.toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
@@ -46,8 +56,8 @@ export function AdminDashboard() {
                 <div className="flex items-center">
                   <QrCode className="w-8 h-8 text-green-600" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">QR Stickers</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.totalStickers.toLocaleString()}</p>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">QR Stickers</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.totalStickers.toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
@@ -58,8 +68,8 @@ export function AdminDashboard() {
                 <div className="flex items-center">
                   <Bell className="w-8 h-8 text-orange-600" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Active Incidents</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.activeIncidents}</p>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Incidents</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.activeIncidents}</p>
                   </div>
                 </div>
               </CardContent>

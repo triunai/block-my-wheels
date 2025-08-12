@@ -5,6 +5,8 @@ import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { Badge } from '../../components/ui/badge'
 import { Alert, AlertDescription } from '../../components/ui/alert'
+import { Header } from '../../components/Header'
+import { FadeawayCars } from '../../components/animations/FadeawayCars'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../contexts/AuthContext'
 import { toast } from '../../hooks/use-toast'
@@ -167,28 +169,54 @@ export function ProfileManager() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto p-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center">Loading profile...</div>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950 relative overflow-hidden">
+        <div className="relative z-50">
+          <Header />
+        </div>
+        
+        {/* Animated Car Background */}
+        <FadeawayCars 
+          carCount={8}
+          speed="medium"
+          density="light"
+          className="opacity-30 dark:opacity-20"
+        />
+        
+        <div className="max-w-2xl mx-auto p-6 relative z-10">
+          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-white/20 dark:border-gray-700/50 shadow-lg">
+            <CardContent className="p-6">
+              <div className="text-center text-gray-900 dark:text-gray-100">Loading profile...</div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>User Profile Management</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950 relative overflow-hidden">
+      <div className="relative z-50">
+        <Header />
+      </div>
+      
+      {/* Animated Car Background */}
+      <FadeawayCars 
+        carCount={8}
+        speed="medium"
+        density="light"
+        className="opacity-30 dark:opacity-20"
+      />
+      
+      <div className="max-w-2xl mx-auto p-6 relative z-10">
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">User Profile Management</h1>
+        </div>
+        
+        <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-white/20 dark:border-gray-700/50 shadow-lg">
+          <CardContent className="space-y-6 pt-6">
           {user && (
-            <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
-              <strong>Current User:</strong>
-              <div>ID: <code>{user.id}</code></div>
-              <div>Email: <code>{user.email}</code></div>
+            <div className="text-sm text-gray-600 dark:text-gray-300">
+              <strong className="text-gray-800 dark:text-gray-200">Current Email:</strong> {user.email}
             </div>
           )}
 
@@ -210,16 +238,16 @@ export function ProfileManager() {
           {(showCreateForm || profile) && (
             <div className="space-y-4">
               <div>
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone" className="text-gray-700 dark:text-gray-300">Phone Number</Label>
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="+1234567890"
+                  placeholder="+60123456789"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="mt-1"
+                  className="mt-1 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                 />
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   This will be used for WhatsApp notifications
                 </div>
               </div>
@@ -235,41 +263,43 @@ export function ProfileManager() {
           )}
 
           {profile && (
-            <div className="space-y-4 border-t pt-4">
-              <h3 className="font-semibold">Current Profile:</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <strong>User Type:</strong>
-                  <Badge className="ml-2">{profile.user_type}</Badge>
-                </div>
-                <div>
-                  <strong>Phone:</strong> {profile.phone || 'Not set'}
-                </div>
-                <div>
-                  <strong>WhatsApp ID:</strong> {profile.wa_id || 'Not set'}
-                </div>
-                <div>
-                  <strong>Total Incidents:</strong> {profile.total_incidents}
-                </div>
-                <div>
-                  <strong>Created:</strong> {new Date(profile.created_at).toLocaleDateString()}
-                </div>
-                <div>
-                  <strong>Updated:</strong> {new Date(profile.updated_at).toLocaleDateString()}
+            <div className="space-y-4 border-t border-gray-200 dark:border-gray-600 pt-4">
+              <div className="text-sm text-gray-600 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/30 p-3 rounded border border-blue-200 dark:border-blue-700">
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">Current Profile:</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="text-gray-700 dark:text-gray-300">
+                    <strong className="text-gray-900 dark:text-gray-100">User Type:</strong>
+                    <Badge className="ml-2 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-600">{profile.user_type}</Badge>
+                  </div>
+                  <div className="text-gray-700 dark:text-gray-300">
+                    <strong className="text-gray-900 dark:text-gray-100">Phone:</strong> {profile.phone || 'Not set'}
+                  </div>
+                  <div className="text-gray-700 dark:text-gray-300">
+                    <strong className="text-gray-900 dark:text-gray-100">WhatsApp ID:</strong> {profile.wa_id || 'Not set'}
+                  </div>
+                  <div className="text-gray-700 dark:text-gray-300">
+                    <strong className="text-gray-900 dark:text-gray-100">Total Incidents:</strong> {profile.total_incidents}
+                  </div>
+                  <div className="text-gray-700 dark:text-gray-300">
+                    <strong className="text-gray-900 dark:text-gray-100">Created:</strong> {new Date(profile.created_at).toLocaleDateString()}
+                  </div>
+                  <div className="text-gray-700 dark:text-gray-300">
+                    <strong className="text-gray-900 dark:text-gray-100">Updated:</strong> {new Date(profile.updated_at).toLocaleDateString()}
+                  </div>
                 </div>
               </div>
 
               {profile.phone && !profile.phone.startsWith('temp-') && (
-                <Alert>
-                  <AlertDescription className="text-green-700">
+                <Alert className="border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20">
+                  <AlertDescription className="text-green-700 dark:text-green-300">
                     ✅ Profile is complete! You can now create stickers.
                   </AlertDescription>
                 </Alert>
               )}
 
               {(!profile.phone || profile.phone.startsWith('temp-')) && (
-                <Alert>
-                  <AlertDescription className="text-red-700">
+                <Alert className="border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20">
+                  <AlertDescription className="text-red-700 dark:text-red-300">
                     ❌ Profile incomplete: Please add a valid phone number to create stickers.
                   </AlertDescription>
                 </Alert>
@@ -279,5 +309,6 @@ export function ProfileManager() {
         </CardContent>
       </Card>
     </div>
+  </div>
   )
 } 

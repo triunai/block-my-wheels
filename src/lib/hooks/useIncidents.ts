@@ -13,20 +13,7 @@ export const useScanPageData = (token: string) => {
 export const useDriverIncidents = (driverId?: string) => {
   return useQuery({
     queryKey: ['driverIncidents', driverId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('incidents')
-        .select(`
-          *,
-          sticker:stickers(*)
-        `)
-        .eq('sticker.driver_id', driverId)
-        .eq('status', 'open')
-        .order('created_at', { ascending: false })
-      
-      if (error) throw error
-      return data as Incident[]
-    },
+    queryFn: () => rpcFunctions.fetchDriverIncidents(driverId!),
     enabled: !!driverId,
   })
 }

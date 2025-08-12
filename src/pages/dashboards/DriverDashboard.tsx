@@ -17,6 +17,7 @@ import { ProfileSetupCard } from '../../components/dashboard/ProfileSetupCard'
 import { DashboardStats } from '../../components/dashboard/DashboardStats'
 import { IncidentsList } from '../../components/dashboard/IncidentsList'
 import { AcknowledgeDialog } from '../../components/dashboard/AcknowledgeDialog'
+import { FadeawayCars } from '../../components/animations/FadeawayCars'
 
 // Utils
 import { formatTimeAgo } from '../../lib/utils/timeUtils'
@@ -100,9 +101,18 @@ export function DriverDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950 relative overflow-hidden">
       <Header />
-      <div className="p-4">
+      
+      {/* Animated Car Background */}
+      <FadeawayCars 
+        carCount={6}
+        speed="slow"
+        density="light"
+        className="opacity-20 dark:opacity-10"
+      />
+      
+      <div className="p-4 relative z-10">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-8 flex items-center justify-between">
