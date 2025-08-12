@@ -22,12 +22,14 @@ export interface Sticker {
 export interface Incident {
   id: string
   sticker_id: string
-  rage: number
-  status: 'open' | 'ack' | 'closed'
+  rage?: number // Legacy compatibility
+  rage_level?: number // New standard
+  status: 'open' | 'acknowledged' | 'resolved' | 'expired'
   scanner_ip?: string
   created_at: string
-  ack_at?: string
+  acknowledged_at?: string
   eta_minutes?: number
+  resolved_at?: string
   sticker?: Sticker
 }
 

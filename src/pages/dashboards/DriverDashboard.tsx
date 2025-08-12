@@ -35,9 +35,23 @@ export function DriverDashboard() {
   // Show loading state if user hasn't loaded yet
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950 p-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center py-8">Loading your dashboard...</div>
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950 relative overflow-hidden">
+        <div className="relative z-50">
+          <Header />
+        </div>
+        
+        {/* Animated Car Background */}
+        <FadeawayCars 
+          carCount={6}
+          speed="slow"
+          density="light"
+          className="opacity-20 dark:opacity-10"
+        />
+        
+        <div className="p-4 relative z-10">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center py-8 text-gray-900 dark:text-white">Loading your dashboard...</div>
+          </div>
         </div>
       </div>
     )
@@ -102,7 +116,9 @@ export function DriverDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950 relative overflow-hidden">
-      <Header />
+      <div className="relative z-50">
+        <Header />
+      </div>
       
       {/* Animated Car Background */}
       <FadeawayCars 
@@ -156,7 +172,10 @@ export function DriverDashboard() {
             error={null}
             formatTimeAgo={formatTimeAgo}
             getRageEmoji={getRageEmoji}
-            onSelectIncident={setSelectedIncident}
+            onSelectIncident={(incident) => {
+              setSelectedIncident(incident)
+              setIsAckDialogOpen(true)
+            }}
           />
 
           {/* Acknowledge Dialog */}
