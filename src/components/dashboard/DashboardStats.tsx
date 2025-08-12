@@ -10,7 +10,7 @@ interface DashboardStatsProps {
 
 export function DashboardStats({ incidents, activeStickers = 1 }: DashboardStatsProps) {
   const openIncidents = incidents?.length || 0
-  const totalRagePoints = incidents?.reduce((acc, inc) => acc + inc.rage, 0) || 0
+  const totalRagePoints = incidents?.reduce((acc, inc) => acc + (inc.rage_level || inc.rage || 0), 0) || 0
 
   const stats = [
     {

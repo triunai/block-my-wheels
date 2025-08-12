@@ -1,15 +1,71 @@
-export function formatTimeAgo(date: string): string {
-  const now = new Date()
-  const then = new Date(date)
-  const diffMs = now.getTime() - then.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
+/**
+ * Time utility functions for formatting and displaying time-related data
+ */
+
+export const formatTimeAgo = (dateString: string): string => {
+  try {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+    if (diffInSeconds < 60) {
+      return 'Just now'
+    }
+
+    const diffInMinutes = Math.floor(diffInSeconds / 60)
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minute${diffInMinutes === 1 ? '' : 's'} ago`
+    }
+
+    const diffInHours = Math.floor(diffInMinutes / 60)
+    if (diffInHours < 24) {
+      return `${diffInHours} hour${diffInHours === 1 ? '' : 's'} ago`
+    }
+
+    const diffInDays = Math.floor(diffInHours / 24)
+    if (diffInDays < 7) {
+      return `${diffInDays} day${diffInDays === 1 ? '' : 's'} ago`
+    }
+
+    const diffInWeeks = Math.floor(diffInDays / 7)
+    if (diffInWeeks < 4) {
+      return `${diffInWeeks} week${diffInWeeks === 1 ? '' : 's'} ago`
+    }
+
+    // For dates older than a month, show the actual date
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+    })
+  } catch (error) {
+    console.error('Error formatting date:', error)
+    return 'Unknown time'
+  }
+}
+
+export const formatDuration = (minutes: number): string => {
+  if (minutes < 60) {
+    return `${minutes}m`
+  }
   
-  if (diffMins < 1) return 'Just now'
-  if (diffMins < 60) return `${diffMins} min${diffMins === 1 ? '' : 's'} ago`
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
   
-  const diffHours = Math.floor(diffMins / 60)
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
+  if (remainingMinutes === 0) {
+    return `${hours}h`
+  }
   
-  const diffDays = Math.floor(diffHours / 24)
-  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
+  return `${hours}h ${remainingMinutes}m`
+}
+
+export const isRecent = (dateString: string, minutesThreshold: number = 30): boolean => {
+  try {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
+    return diffInMinutes <= minutesThreshold
+  } catch (error) {
+    return false
+  }
 }
