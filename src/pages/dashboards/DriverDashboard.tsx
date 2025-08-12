@@ -32,6 +32,8 @@ export function DriverDashboard() {
   const [isAckDialogOpen, setIsAckDialogOpen] = useState(false)
   const [isCreatingProfile, setIsCreatingProfile] = useState(false)
 
+
+
   // Show loading state if user hasn't loaded yet
   if (!user) {
     return (
@@ -155,7 +157,7 @@ export function DriverDashboard() {
           </div>
 
           {/* Profile Creation Section */}
-          {!profile && (
+          {!profile && user && (
             <ProfileSetupCard
               onCreateProfile={handleCreateProfile}
               isCreatingProfile={isCreatingProfile}

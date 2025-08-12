@@ -19,6 +19,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [profileLoading, setProfileLoading] = useState(false)
 
   // Test database connectivity
   const testDatabaseConnection = async () => {
@@ -45,12 +46,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
     logger.info(`[FETCH_PROFILE_START] User: ${userId}`)
     
+    // Prevent multiple simultaneous fetches
+    if (profileLoading) {
+      logger.info('[FETCH_PROFILE] Profile fetch already in progress, skipping...')
+      return null
+    }
+    
+    setProfileLoading(true)
+    
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
     const isTemplateMode = !supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('your-project')
 
     if (isTemplateMode) {
       logger.warn('[FETCH_PROFILE] Template mode detected. Returning mock profile.')
+      setProfileLoading(false)
       return {
         id: userId,
         user_type: 'driver',
@@ -65,18 +75,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       logger.info('[FETCH_PROFILE] Querying Supabase for profile...')
       
-      // Add emergency 5-second timeout to prevent app freezing
-      const profileQuery = supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
+      // Increase timeout to 15 seconds and add retry logic
+      const executeQuery = async (attempt: number = 1): Promise<{data: any, error: any}> => {
+        const profileQuery = supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', userId)
+          .single()
+          
+        const timeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error(`Profile query timeout after 15 seconds (attempt ${attempt})`)), 15000)
+        )
         
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Profile query timeout after 5 seconds')), 5000)
-      )
+        try {
+          return await Promise.race([profileQuery, timeoutPromise])
+        } catch (error) {
+          if (error instanceof Error && error.message.includes('timeout') && attempt < 2) {
+            logger.warn(`[FETCH_PROFILE] Attempt ${attempt} timed out, retrying...`)
+            await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second
+            return executeQuery(attempt + 1)
+          }
+          throw error
+        }
+      }
       
-      const { data, error } = await Promise.race([profileQuery, timeoutPromise])
+      const { data, error } = await executeQuery()
         
       logger.info(`[FETCH_PROFILE] Supabase query returned. HasError: ${!!error}, HasData: ${!!data}`)
 
@@ -99,11 +122,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return data
     } catch (error) {
       if (error instanceof Error && error.message.includes('timeout')) {
-        logger.warn('[FETCH_PROFILE] Query timed out after 5 seconds. App will continue without profile.')
+        logger.warn('[FETCH_PROFILE] All query attempts timed out. App will continue without profile.')
         return null
       }
       logger.error('[FETCH_PROFILE_END] Failed with critical error.', error)
       return null
+    } finally {
+      setProfileLoading(false)
     }
   }
 

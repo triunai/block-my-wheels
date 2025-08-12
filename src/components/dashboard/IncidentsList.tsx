@@ -75,7 +75,7 @@ export function IncidentsList({
           <>
             <div className="space-y-4">
               {displayedIncidents?.map((incident) => (
-                <div key={incident.id} className="p-4 bg-gray-50/80 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                <div key={incident.id} className="p-4 bg-white/60 dark:bg-gray-900/60 rounded-lg border border-gray-200/50 dark:border-gray-700/50">
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="flex items-center gap-2">
