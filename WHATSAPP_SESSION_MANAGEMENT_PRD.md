@@ -69,12 +69,12 @@ Quick actions:
 Reply to activate instant notifications.
 ```
 
-**Escalation Templates (Rage-Specific Fallbacks):**
+**Escalation Templates (Policy-Compliant Utility Category):**
 ```
-Rage 1-2: "📱 Friendly reminder about vehicle {{plate}}. Quick reply options below:"
-Rage 3: "🚨 URGENT: Vehicle {{plate}} blocking traffic. Immediate action needed:"
-Rage 4: "🔥 CRITICAL: {{plate}} causing major disruption. Move NOW:"
-Rage 5: "💀 EMERGENCY: {{plate}} blocking emergency access. MOVE IMMEDIATELY:"
+parking_reactivate_v1 (Rage 1-2): "Vehicle {{plate}} needs attention at {{location}}."
+parking_nudge_v1 (Rage 2-3): "URGENT: Access needed for {{plate}} at {{location}}."
+parking_urgent_v1 (Rage 4): "CRITICAL: Emergency access required for {{plate}}."
+parking_emergency_v1 (Rage 5): "EMERGENCY: Immediate access needed for {{plate}} - safety priority."
 ```
 
 ---
@@ -169,21 +169,23 @@ QR Scan (Rage 4)
 
 ## 📊 Scaling Architecture
 
-### **Session Health Management**
+### **Session Health Management (Policy-Compliant)**
 ```javascript
-// Automated Session Maintenance (Background Process)
-Every 6 Hours:
-  1. Check users with sessions expiring in next 18 hours
-  2. Send subtle keep-alive messages to active users:
-     - "Weekly parking update: 3 new spots near you 🅿️"
-     - "Reminder: Your BMW sticker is active and working ✅"
-  3. Track response rates and optimize timing
+// Automated Session Maintenance (User-Controlled, Template-Based)
+Monthly (User Opt-In Only):
+  1. Check users who opted-in for maintenance messages
+  2. Send approved UTILITY/MARKETING templates only:
+     - "Monthly parking reminder: Your sticker {{plate}} is active ✅"
+     - "Parking preferences: [Urgent only] [All alerts] [Stop]"
+  3. Track opt-outs and response rates
+  4. Respect user preferences (Urgent/All/Stop)
 
 Session Analytics Dashboard:
   - Active Sessions: 1,247 users (73%)
   - Expiring Soon: 89 users (5%)
   - Template Recovery Rate: 67%
   - Escalation Prevention: 91%
+  - Opt-in Rate: 45% (for maintenance messages)
 ```
 
 ### **Performance Optimization**
@@ -197,27 +199,30 @@ Session Analytics Dashboard:
 
 ## 🎯 Technical Implementation Details
 
-### **n8n Workflow Architecture**
+### **n8n Workflow Architecture (Policy-Compliant Router)**
 ```javascript
 // Main Notification Workflow
 Nodes:
 1. Webhook Trigger (receives: phoneNumber, rageLevel, plate, timestamp)
-2. Session Status Check (query last user message timestamp)
-3. Decision Node (active vs expired session)
-4. AI Message Generator (for active sessions)
-5. Smart Template Sender (for expired sessions)
-6. Response Monitor (5-minute timeout)
-7. Escalation Engine (rage-based templates)
-8. Success Logger (analytics and metrics)
-9. Response Node (structured JSON back to web app)
+2. Session Status Check (query last user message + 72h free entry window)
+3. Policy Gate (US number + Marketing template = block)
+4. Router Decision:
+   - if (in72hFreeEntryWindow || lastInbound < 24h) → FREEFORM
+   - else → TEMPLATE(rage)
+5. AI Message Generator (for active sessions)
+6. Template Sender (UTILITY category, ≤3 buttons)
+7. Response Monitor (5-minute timeout)
+8. Escalation Engine (policy-safe templates)
+9. Success Logger (analytics and metrics)
+10. Response Node (structured JSON back to web app)
 
-// Session Maintenance Workflow  
+// Session Maintenance Workflow (Monthly, Opt-In Only)
 Nodes:
-1. Schedule Trigger (every 6 hours)
-2. Session Health Scanner
-3. Keep-Alive Message Sender
-4. Response Rate Analyzer
-5. Template Optimization Engine
+1. Schedule Trigger (monthly)
+2. Opt-In User Scanner (only users who consented)
+3. Template Message Sender (UTILITY/MARKETING categories)
+4. Opt-Out Handler ([Stop] button responses)
+5. Preference Manager (Urgent/All/Stop settings)
 ```
 
 ### **Expected n8n Response Format**
@@ -271,34 +276,36 @@ Nodes:
 - **🔥 Urgency Indicators**: Visual cues for importance
 - **🔄 Response Incentives**: "Reply to activate instant notifications"
 
-### **Quick Reply Button Strategy**
+### **Quick Reply Button Strategy (≤3 Buttons Per Message)**
 ```javascript
-Universal Template Buttons:
+Universal Template Buttons (Max 3):
 👍 "Moving now" → Response: immediate_action
-⏰ "Need 5 minutes" → Response: short_delay  
+⏰ "Need 5 min" → Response: short_delay  
 ❓ "More details" → Response: want_info
+
+Escalation Template Buttons (Max 3):
+🚨 "Moving now" → Response: emergency_action
+⏰ "Need 5 min" → Response: minimal_delay
 ❌ "Can't move" → Response: unable_comply
 
-Escalation Template Buttons:
-🚨 "Moving immediately" → Response: emergency_action
-⏰ "Need 2 minutes" → Response: minimal_delay
-🆘 "Emergency situation" → Response: emergency_help
-📞 "Call me" → Response: prefer_call
+Note: Meta enforces ≤3 quick-reply buttons per message for universal compatibility
 ```
 
-### **Template Approval Strategy**
+### **Template Approval Strategy (Policy-Compliant Categories)**
 ```
-Template Categories for WhatsApp Approval:
-1. UTILITY - Smart session reactivator
-2. ALERT_UPDATE - Rage level 1-3 notifications  
-3. ISSUE_RESOLUTION - Rage level 4-5 emergencies
-4. ACCOUNT_UPDATE - Keep-alive maintenance messages
+Template Categories for WhatsApp Approval (Meta Official Categories Only):
+1. UTILITY - All parking alerts & rage-based escalations
+   - parking_reactivate_v1, parking_nudge_v1, parking_urgent_v1, parking_emergency_v1
+2. MARKETING - User preferences & opt-in management (Malaysia OK, US gated from Apr 2025)
+   - prefs_update_v1
 
 Approval Timeline: 
 - Submit all templates: Week 1
 - WhatsApp review: 3-5 business days
 - Revisions if needed: 2-3 days
 - Go-live: Week 2
+
+Note: Malaysia users unaffected by US Marketing template pause
 ```
 
 ---
@@ -403,11 +410,12 @@ Weekly Trends:
 - **Session Tracking Accuracy**: Use multiple validation sources
 - **Webhook Failures**: Implement retry logic with exponential backoff
 
-### **Business Risks**
-- **User Fatigue**: Limit template frequency, optimize content
-- **Escalation Abuse**: Track usage patterns, implement cooling-off periods
-- **Cost Overruns**: Set daily limits, monitor spending closely
-- **Compliance Issues**: Regular audit of template usage and content
+### **Business Risks & Compliance**
+- **User Fatigue**: Monthly opt-in templates only, respect preferences
+- **Policy Violations**: Use UTILITY/MARKETING categories only, ≤3 buttons
+- **US Marketing Gate**: Block Marketing templates to US numbers (Apr 2025+)
+- **Cost Variations**: Treat pricing as config-driven (24h/72h free, templates vary by region)
+- **Quality Score**: Maintain opt-in practices and value-adding content
 
 ### **User Experience Risks**
 - **Template Spam**: Smart frequency limits and user preferences
@@ -463,17 +471,76 @@ Annual Benefit: $74,400
 
 ---
 
+## 📋 Policy-Safe Template Examples (Drop-In Ready)
+
+### **parking_urgent_v1 (UTILITY Category)**
+```json
+{
+  "category": "UTILITY",
+  "name": "parking_urgent_v1",
+  "language": "en",
+  "components": [
+    {
+      "type": "BODY",
+      "text": "URGENT: Access needed for {{1}} at {{2}}."
+    },
+    {
+      "type": "BUTTONS",
+      "buttons": [
+        {"type": "QUICK_REPLY", "text": "Moving now"},
+        {"type": "QUICK_REPLY", "text": "Need 5 min"}, 
+        {"type": "QUICK_REPLY", "text": "Can't move"}
+      ]
+    }
+  ]
+}
+```
+
+### **prefs_update_v1 (MARKETING Category - Malaysia OK)**
+```json
+{
+  "category": "MARKETING", 
+  "name": "prefs_update_v1",
+  "language": "en",
+  "components": [
+    {
+      "type": "BODY",
+      "text": "Choose alert preferences for {{1}}."
+    },
+    {
+      "type": "BUTTONS",
+      "buttons": [
+        {"type": "QUICK_REPLY", "text": "Urgent only"},
+        {"type": "QUICK_REPLY", "text": "All alerts"},
+        {"type": "QUICK_REPLY", "text": "Stop"}
+      ]
+    }
+  ]
+}
+```
+
+## 🛡️ Final Compliance Checklist (Pre-Launch)
+
+- ✅ **Template Categories**: Only UTILITY/MARKETING (no custom categories)
+- ✅ **Button Limits**: ≤3 quick-reply buttons per message
+- ✅ **US Marketing Gate**: Block Marketing templates to US numbers (Apr 2025+)
+- ✅ **Session Windows**: 24h + 72h free-entry windows for free-form routing
+- ✅ **Keep-Alive**: Monthly, opt-in only, template-based messages
+- ✅ **Safe Copy**: Factual, non-threatening language in all templates
+- ✅ **Pricing**: Config-driven costs (24h/72h free, regional template pricing)
+
 ## 📝 Conclusion
 
-This PRD outlines an **elegant, scalable, and user-friendly** approach to WhatsApp session management that:
+This PRD outlines an **elegant, scalable, and policy-compliant** approach to WhatsApp session management that:
 
-- **🎯 Respects WhatsApp's Rules**: Proper template usage and session management
+- **🎯 Respects Meta's Rules**: Proper categories, button limits, session windows
 - **⚡ Delivers Excellent UX**: Smart templates with quick reply buttons  
-- **🔥 Handles Emergencies**: Progressive escalation for critical situations
-- **📊 Scales Beautifully**: Session tracking and automated optimization
+- **🔥 Handles Emergencies**: Progressive escalation with safe language
+- **📊 Scales Beautifully**: Session tracking with opt-in automation
 - **💰 Drives Business Value**: Higher delivery rates and user satisfaction
+- **🇲🇾 Malaysia-Optimized**: No US Marketing restrictions affect your users
 
-**Ready to build this elegant notification system that works reliably for every user, every time!** 🚀
+**Ready to build this policy-proof notification system that works reliably for every user, every time!** 🚀
 
 ---
 
