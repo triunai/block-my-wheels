@@ -7,6 +7,10 @@ export const useScanPageData = (token: string) => {
     queryKey: ['scanPage', token],
     queryFn: () => rpcFunctions.fetchScanPage(token),
     enabled: !!token,
+    staleTime: 30 * 1000, // 30 seconds cache
+    cacheTime: 5 * 60 * 1000, // 5 minutes background cache
+    refetchOnWindowFocus: false, // Don't refetch on tab switch
+    retry: 2, // Only retry twice
   })
 }
 

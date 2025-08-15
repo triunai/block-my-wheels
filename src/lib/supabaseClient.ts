@@ -94,7 +94,7 @@ const mockScanPageData: ScanPageData = {
     status: 'open',
     scanner_ip: '192.168.1.1',
     created_at: new Date().toISOString(),
-    ack_at: undefined,
+    acknowledged_at: undefined,
     eta_minutes: undefined
   }
 }
@@ -107,7 +107,7 @@ const mockIncidents: Incident[] = [
     status: 'open',
     scanner_ip: '192.168.1.1',
     created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
-    ack_at: undefined,
+    acknowledged_at: undefined,
     eta_minutes: undefined,
     sticker: {
       id: 'mock-sticker-1',
@@ -124,7 +124,7 @@ const mockIncidents: Incident[] = [
     status: 'open',
     scanner_ip: '192.168.1.2',
     created_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 15 minutes ago
-    ack_at: undefined,
+    acknowledged_at: undefined,
     eta_minutes: undefined,
     sticker: {
       id: 'mock-sticker-2',
@@ -171,80 +171,137 @@ export const rpcFunctions = {
     try {
       logger.info(`[NOTIFY_DRIVER_START] Creating incident for token: ${token}, rage: ${rage}`)
       
-      // First, get the sticker owner's phone number for webhook
-      const { data: stickerData, error: stickerError } = await supabase
-        .from('stickers')
-        .select(`
-          owner_id,
-          user_profiles!inner(phone)
-        `)
-        .eq('token', token)
-        .eq('status', 'active')
-        .single()
+      // 🚀 OPTIMIZED: Get phone and create incident in parallel
+      const [phoneQuery, incidentCreation] = await Promise.allSettled([
+        // Get sticker owner's phone number
+        supabase
+          .from('stickers')
+          .select(`
+            owner_id,
+            user_profiles!inner(phone)
+          `)
+          .eq('token', token)
+          .eq('status', 'active')
+          .single(),
+        
+        // Create incident in database
+        supabase.rpc('handle_new_ping', { 
+          p_token: token, 
+          p_rage_level: rage,
+          p_scanner_ip_text: null
+        })
+      ])
       
-      if (stickerError || !stickerData) {
-        logger.error('[NOTIFY_DRIVER] Failed to get sticker owner phone:', stickerError)
+      // Handle phone query result
+      if (phoneQuery.status === 'rejected') {
+        logger.error('[NOTIFY_DRIVER] Failed to get sticker owner phone:', phoneQuery.reason)
         throw new Error('Invalid sticker or unable to get owner details')
       }
       
-      const rawPhoneNumber = (stickerData.user_profiles as any).phone
+      if (!phoneQuery.value.data) {
+        logger.error('[NOTIFY_DRIVER] No sticker data found')
+        throw new Error('Invalid sticker or unable to get owner details')
+      }
+      
+      // Handle incident creation result
+      if (incidentCreation.status === 'rejected') {
+        logger.error(`[NOTIFY_DRIVER_ERROR] RPC error:`, incidentCreation.reason)
+        throw incidentCreation.reason || new Error('Failed to create incident')
+      }
+      
+      if (incidentCreation.value.error) {
+        logger.error(`[NOTIFY_DRIVER_ERROR] RPC error:`, incidentCreation.value.error)
+        throw incidentCreation.value.error
+      }
+      
+      const userProfile = phoneQuery.value.data.user_profiles as unknown as { phone: string }
+      const rawPhoneNumber = userProfile.phone
       logger.info(`[NOTIFY_DRIVER] Found raw phone: ${rawPhoneNumber}`)
       
-      // 🆕 FIX: Format phone number correctly for WhatsApp
-      let formattedPhone = rawPhoneNumber
-      if (rawPhoneNumber && !rawPhoneNumber.startsWith('+')) {
-        if (rawPhoneNumber.startsWith('0')) {
-          // Convert 0123456789 -> +60123456789
-          formattedPhone = '+60' + rawPhoneNumber.substring(1)
-        } else if (rawPhoneNumber.startsWith('60')) {
-          // Convert 60123456789 -> +60123456789  
-          formattedPhone = '+' + rawPhoneNumber
-        } else {
-          // Assume Malaysian number, add +60
-          formattedPhone = '+60' + rawPhoneNumber
-        }
-      }
+      // 🆕 SIMPLIFIED: Format phone number for WhatsApp (Malaysian format)
+      const formattedPhone = rawPhoneNumber?.startsWith('+') 
+        ? rawPhoneNumber 
+        : rawPhoneNumber?.startsWith('0') 
+          ? '+60' + rawPhoneNumber.substring(1)
+          : rawPhoneNumber?.startsWith('60')
+            ? '+' + rawPhoneNumber
+            : '+60' + rawPhoneNumber
       
       logger.info(`[NOTIFY_DRIVER] Formatted phone: ${rawPhoneNumber} -> ${formattedPhone}`)
       
-      // Create incident in database (simplified - no webhook stuff)
-      const { data, error } = await supabase.rpc('handle_new_ping', { 
-        p_token: token, 
-        p_rage_level: rage,
-        p_scanner_ip_text: null
-      })
+      // 🎯 ENHANCED: Make webhook call with session validation support
+      logger.info(`[WEBHOOK_START] Sending webhook to n8n with session validation...`)
       
-      logger.info(`[NOTIFY_DRIVER_RESPONSE] RPC returned:`, { data, error })
-      
-      if (error) {
-        logger.error(`[NOTIFY_DRIVER_ERROR] RPC error:`, error)
-        throw error
+      try {
+        const webhookResponse = await fetch('https://parallellium.app.n8n.cloud/webhook/whatsapp-rage-agent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            rageCounter: rage,
+            phoneNumber: formattedPhone,
+            timestamp: new Date().toISOString(),
+            token: token,
+            // 🆕 Simplified session handling
+            messageType: 'rage_notification',
+            fallbackMessage: 'session_prompt' // Use template if session expired
+          }),
+          signal: AbortSignal.timeout(15000) // 15 second timeout for session validation
+        })
+        
+        const responseText = await webhookResponse.text()
+        let responseData = null
+        
+        try {
+          responseData = JSON.parse(responseText)
+        } catch {
+          // Response is not JSON, use as plain text
+          responseData = { message: responseText }
+        }
+        
+        logger.info(`[WEBHOOK_RESPONSE] Status: ${webhookResponse.status}, Data:`, responseData)
+        
+        if (!webhookResponse.ok) {
+          logger.error(`[WEBHOOK_FAILED] HTTP ${webhookResponse.status}: ${responseText}`)
+          return {
+            ...incidentCreation.value.data,
+            webhookStatus: 'failed',
+            webhookError: responseText
+          }
+        } else {
+          logger.info(`[WEBHOOK_SUCCESS] Message processing initiated!`)
+          
+          // 🎯 Handle different response types from n8n
+          const webhookResult = {
+            status: responseData.status || 'success',
+            messageType: responseData.messageType || 'unknown',
+            sessionStatus: responseData.sessionStatus || 'unknown',
+            messageId: responseData.messageId || null,
+            deliveryMethod: responseData.deliveryMethod || 'whatsapp', // whatsapp, sms, email
+            fallbackUsed: responseData.fallbackUsed || false
+          }
+          
+          if (webhookResult.fallbackUsed) {
+            logger.info(`[FALLBACK_DELIVERY] Message sent via ${webhookResult.deliveryMethod} due to WhatsApp session expiry`)
+          }
+          
+          return {
+            ...incidentCreation.value.data,
+            webhookStatus: 'success',
+            webhookResult
+          }
+        }
+      } catch (webhookError) {
+        logger.error(`[WEBHOOK_ERROR] Webhook request failed:`, webhookError)
+        return {
+          ...incidentCreation.value.data,
+          webhookStatus: 'error',
+          webhookError: webhookError instanceof Error ? webhookError.message : 'Unknown error'
+        }
       }
       
-      // 🎯 SIMPLE: Make webhook call directly from client
-      logger.info(`[WEBHOOK_START] Sending webhook to n8n...`)
-      
-      const webhookPayload = {
-        rageCounter: rage,
-        phoneNumber: formattedPhone
-      }
-      
-      const webhookResponse = await fetch('https://parallellium.app.n8n.cloud/webhook/whatsapp-rage-agent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(webhookPayload)
-      })
-      
-      if (webhookResponse.ok) {
-        logger.info(`[WEBHOOK_SUCCESS] Webhook sent successfully!`)
-      } else {
-        logger.error(`[WEBHOOK_FAILED] Webhook failed:`, webhookResponse.status, webhookResponse.statusText)
-        // Don't throw error - incident was created, webhook failure shouldn't break the flow
-      }
-      
-      return data
+      return incidentCreation.value.data
     } catch (error) {
       logger.error(`[NOTIFY_DRIVER_EXCEPTION] Exception occurred:`, error)
       return handleRpcError(error, 'notify driver')
@@ -333,7 +390,8 @@ export const rpcFunctions = {
         throw new Error('PROFILE_INCOMPLETE: Please complete your profile setup before creating stickers')
       }
 
-      if (!profile.phone || profile.phone.startsWith('temp-')) {
+      const userProfile = profile as { phone?: string }
+      if (!userProfile?.phone || userProfile.phone.startsWith('temp-')) {
         logger.error(`[DB_CREATE_STICKER] User profile incomplete - missing phone: ${user_id}`)
         throw new Error('PROFILE_INCOMPLETE: Please add your phone number to your profile before creating stickers')
       }
