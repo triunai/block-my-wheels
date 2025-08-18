@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { logger } from './utils'
+import type { Sticker, Incident, ScanPageData, Driver, RpcResponse } from '../interfaces/database'
 
 // Types for our database schema
 export interface Driver {

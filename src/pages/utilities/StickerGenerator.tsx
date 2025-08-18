@@ -23,7 +23,7 @@ import { FadeawayCars } from '../../components/animations'
 import { generateSticker, generateBatchStickers, getScanUrl, stickerTemplates, downloadStickersAsZip } from '../../lib/qrGenerator'
 import { useAuth } from '../../contexts/AuthContext'
 import { Header } from '../../components/Header'
-import { useStickerHistory } from '../../lib/hooks/useIncidents'
+// Removed unused import - useStickerHistory doesn't exist
 import { rpcFunctions } from '../../lib/supabaseClient'
 import { generateStickerImage, generatePDF, StickerData } from '../../lib/qrGenerator'
 import JSZip from 'jszip'

@@ -7,10 +7,13 @@ export const useScanPageData = (token: string) => {
     queryKey: ['scanPage', token],
     queryFn: () => rpcFunctions.fetchScanPage(token),
     enabled: !!token,
-    staleTime: 30 * 1000, // 30 seconds cache
-    cacheTime: 5 * 60 * 1000, // 5 minutes background cache
+    staleTime: 2 * 60 * 1000, // 2 minutes cache (longer for scan pages)
+    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection (renamed from cacheTime)
     refetchOnWindowFocus: false, // Don't refetch on tab switch
-    retry: 2, // Only retry twice
+    refetchOnMount: false, // Don't refetch on component mount if data exists
+    refetchOnReconnect: 'always', // Only refetch on reconnect if stale
+    retry: 1, // Only retry once to fail fast
+    retryDelay: 500, // Quick retry
   })
 }
 
@@ -62,14 +65,19 @@ export const useUserStickers = (userId?: string) => {
       
       const { data, error } = await supabase
         .from('stickers')
-        .select('*')
+        .select('id, token, plate, style, status, created_at') // Only select needed fields
         .eq('owner_id', userId)
         .order('created_at', { ascending: false })
+        .limit(50) // Limit to last 50 stickers for performance
       
       if (error) throw error
       return data
     },
     enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    gcTime: 15 * 60 * 1000, // 15 minutes garbage collection
+    refetchOnWindowFocus: false,
+    retry: 1,
   })
 }
 

@@ -21,12 +21,12 @@ export function ScanPage({ token }: ScanPageProps) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950 relative overflow-hidden p-4">
-        {/* Animated Car Background */}
+        {/* Lightweight Car Background */}
         <FadeawayCars 
-          carCount={8}
-          speed="medium"
+          carCount={4}
+          speed="slow"
           density="light"
-          className="opacity-30 dark:opacity-20"
+          className="opacity-20 dark:opacity-10"
         />
         <div className="max-w-md mx-auto pt-8 space-y-4 relative z-10">
           <Skeleton className="h-8 w-3/4 mx-auto" />
@@ -52,12 +52,12 @@ export function ScanPage({ token }: ScanPageProps) {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950 relative overflow-hidden p-4 flex items-center justify-center">
-        {/* Animated Car Background */}
+        {/* Lightweight Car Background */}
         <FadeawayCars 
-          carCount={8}
-          speed="medium"
-          density="light"
-          className="opacity-30 dark:opacity-20"
+          carCount={4}
+          speed="slow"
+          density="minimal"
+          className="opacity-20 dark:opacity-10"
         />
         <Card className="max-w-md w-full relative z-10">
           <CardContent className="p-6 text-center">
@@ -75,12 +75,12 @@ export function ScanPage({ token }: ScanPageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950 relative overflow-hidden">
-      {/* Animated Car Background */}
+      {/* Lightweight Car Background */}
       <FadeawayCars 
-        carCount={8}
-        speed="medium"
-        density="light"
-        className="opacity-30 dark:opacity-20"
+        carCount={4}
+        speed="slow"
+        density="minimal"
+        className="opacity-20 dark:opacity-10"
       />
       
       <Header />
