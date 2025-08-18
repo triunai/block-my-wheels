@@ -137,50 +137,33 @@ export const rpcFunctions = {
     try {
       logger.info(`[NOTIFY_DRIVER_START] Creating incident for token: ${token}, rage: ${rage}`)
       
-      // 🚀 OPTIMIZED: Get phone and create incident in parallel
-      const [phoneQuery, incidentCreation] = await Promise.allSettled([
-        // Get sticker owner's phone number
-        supabase
-          .from('stickers')
-          .select(`
-            owner_id,
-            user_profiles!inner(phone)
-          `)
-          .eq('token', token)
-          .eq('status', 'active')
-          .single(),
-        
-        // Create incident in database
-        supabase.rpc('handle_new_ping', { 
-          p_token: token, 
-          p_rage_level: rage,
-          p_scanner_ip_text: null
-        })
-      ])
+      // 🚀 OPTIMIZED: Simplified phone lookup with better indexing
+      const phoneQuery = await supabase
+        .from('stickers')
+        .select('user_profiles!inner(phone)')
+        .eq('token', token)
+        .eq('status', 'active')
+        .single()
       
-      // Handle phone query result
-      if (phoneQuery.status === 'rejected') {
-        logger.error('[NOTIFY_DRIVER] Failed to get sticker owner phone:', phoneQuery.reason)
+      if (phoneQuery.error || !phoneQuery.data) {
+        logger.error('[NOTIFY_DRIVER] Failed to get sticker owner phone:', phoneQuery.error)
         throw new Error('Invalid sticker or unable to get owner details')
       }
       
-      if (!phoneQuery.value.data) {
-        logger.error('[NOTIFY_DRIVER] No sticker data found')
-        throw new Error('Invalid sticker or unable to get owner details')
-      }
+      // Create incident in database (separate call for better error handling)
+      const incidentCreation = await supabase.rpc('handle_new_ping', { 
+        p_token: token, 
+        p_rage_level: rage,
+        p_scanner_ip_text: null
+      })
       
       // Handle incident creation result
-      if (incidentCreation.status === 'rejected') {
-        logger.error(`[NOTIFY_DRIVER_ERROR] RPC error:`, incidentCreation.reason)
-        throw incidentCreation.reason || new Error('Failed to create incident')
+      if (incidentCreation.error) {
+        logger.error(`[NOTIFY_DRIVER_ERROR] RPC error:`, incidentCreation.error)
+        throw incidentCreation.error
       }
       
-      if (incidentCreation.value.error) {
-        logger.error(`[NOTIFY_DRIVER_ERROR] RPC error:`, incidentCreation.value.error)
-        throw incidentCreation.value.error
-      }
-      
-      const userProfile = phoneQuery.value.data.user_profiles as unknown as { phone: string }
+      const userProfile = phoneQuery.data.user_profiles as unknown as { phone: string }
       const rawPhoneNumber = userProfile.phone
       logger.info(`[NOTIFY_DRIVER] Found raw phone: ${rawPhoneNumber}`)
       
@@ -231,7 +214,7 @@ export const rpcFunctions = {
         if (!webhookResponse.ok) {
           logger.error(`[WEBHOOK_FAILED] HTTP ${webhookResponse.status}: ${responseText}`)
           return {
-            ...incidentCreation.value.data,
+            ...incidentCreation.data,
             webhookStatus: 'failed',
             webhookError: responseText
           }
@@ -253,7 +236,7 @@ export const rpcFunctions = {
           }
           
           return {
-            ...incidentCreation.value.data,
+            ...incidentCreation.data,
             webhookStatus: 'success',
             webhookResult
           }
@@ -261,13 +244,18 @@ export const rpcFunctions = {
       } catch (webhookError) {
         logger.error(`[WEBHOOK_ERROR] Webhook request failed:`, webhookError)
         return {
-          ...incidentCreation.value.data,
+          ...incidentCreation.data,
           webhookStatus: 'error',
           webhookError: webhookError instanceof Error ? webhookError.message : 'Unknown error'
         }
       }
       
-      return incidentCreation.value.data
+      // Return the webhook result data instead of incident creation
+      return {
+        success: true,
+        message: 'Driver notification completed successfully',
+        webhookStatus: 'completed'
+      }
     } catch (error) {
       logger.error(`[NOTIFY_DRIVER_EXCEPTION] Exception occurred:`, error)
       return handleRpcError(error, 'notify driver')

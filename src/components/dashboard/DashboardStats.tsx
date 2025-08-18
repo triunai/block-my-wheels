@@ -1,7 +1,7 @@
 import React from 'react'
 import { Card, CardContent } from '../ui/card'
 import { Bell, Car, Clock } from 'lucide-react'
-import { Incident } from '../../lib/supabaseClient'
+import type { Incident } from '../../interfaces/database'
 
 interface DashboardStatsProps {
   incidents: Incident[] | undefined

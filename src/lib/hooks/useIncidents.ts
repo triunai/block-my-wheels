@@ -1,6 +1,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase, rpcFunctions, type Incident, type ScanPageData } from '../supabaseClient'
+import { supabase, rpcFunctions } from '../supabaseClient'
+import type { Incident, ScanPageData } from '../interfaces/database'
 
 export const useScanPageData = (token: string) => {
   return useQuery({

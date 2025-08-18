@@ -9,7 +9,7 @@ import { User } from 'lucide-react'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { Header } from '../../components/Header'
 import { useAuth } from '../../contexts/AuthContext'
-import type { Incident } from '../../lib/supabaseClient'
+import type { Incident } from '../../interfaces/database'
 import { supabase } from '../../lib/supabaseClient'
 
 // Dashboard components

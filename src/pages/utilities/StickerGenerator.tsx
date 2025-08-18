@@ -25,7 +25,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { Header } from '../../components/Header'
 // Removed unused import - useStickerHistory doesn't exist
 import { rpcFunctions } from '../../lib/supabaseClient'
-import { generateStickerImage, generatePDF, StickerData } from '../../lib/qrGenerator'
+// Removed invalid imports - these functions don't exist in qrGenerator
 import JSZip from 'jszip'
 
 const stickerStyles = [

@@ -5,7 +5,7 @@ import { Badge } from '../ui/badge'
 import { Alert, AlertDescription } from '../ui/alert'
 import { AlertCircle, MapPin, Smartphone, ChevronDown, ChevronUp } from 'lucide-react'
 
-import { Incident } from '../../lib/supabaseClient'
+import type { Incident } from '../../interfaces/database'
 
 interface IncidentsListProps {
   incidents: Incident[] | undefined

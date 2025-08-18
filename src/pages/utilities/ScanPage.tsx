@@ -24,8 +24,8 @@ export function ScanPage({ token }: ScanPageProps) {
         {/* Lightweight Car Background */}
         <FadeawayCars 
           carCount={4}
-          speed="slow"
-          density="light"
+          speed="medium"
+          density="heavy"
           className="opacity-20 dark:opacity-10"
         />
         <div className="max-w-md mx-auto pt-8 space-y-4 relative z-10">
@@ -56,7 +56,7 @@ export function ScanPage({ token }: ScanPageProps) {
         <FadeawayCars 
           carCount={4}
           speed="slow"
-          density="minimal"
+          density="light"
           className="opacity-20 dark:opacity-10"
         />
         <Card className="max-w-md w-full relative z-10">
@@ -71,7 +71,7 @@ export function ScanPage({ token }: ScanPageProps) {
   }
 
   const { sticker, incident } = data!
-  const isAcknowledged = incident?.status === 'ack'
+  const isAcknowledged = incident?.status === 'acknowledged'
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-black dark:via-gray-900 dark:to-orange-950 relative overflow-hidden">
@@ -79,7 +79,7 @@ export function ScanPage({ token }: ScanPageProps) {
       <FadeawayCars 
         carCount={4}
         speed="slow"
-        density="minimal"
+        density="heavy"
         className="opacity-20 dark:opacity-10"
       />
       

@@ -20,6 +20,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [profileLoading, setProfileLoading] = useState(false)
+  const [profileCache, setProfileCache] = useState<Map<string, { profile: UserProfile, timestamp: number }>>(new Map())
 
   // Test database connectivity
   const testDatabaseConnection = async () => {
@@ -45,6 +46,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Fetch user profile from user_profiles table
   const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
     logger.info(`[FETCH_PROFILE_START] User: ${userId}`)
+    
+    // 🚀 PERFORMANCE: Check cache first (5-minute cache)
+    const cached = profileCache.get(userId)
+    if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
+      logger.info('[FETCH_PROFILE] Using cached profile (< 5 minutes old)')
+      return cached.profile
+    }
     
     // Prevent multiple simultaneous fetches
     if (profileLoading) {
@@ -76,7 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       logger.info('[FETCH_PROFILE] Querying Supabase for profile...')
       
       // Increase timeout to 15 seconds and add retry logic
-      const executeQuery = async (attempt: number = 1): Promise<{data: any, error: any}> => {
+      const executeQuery = async (attempt: number = 1): Promise<{data: unknown, error: unknown}> => {
         const profileQuery = supabase
           .from('user_profiles')
           .select('*')
@@ -84,7 +92,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .single()
           
         const timeoutPromise = new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error(`Profile query timeout after 15 seconds (attempt ${attempt})`)), 15000)
+          setTimeout(() => reject(new Error(`Profile query timeout after 8 seconds (attempt ${attempt})`)), 8000)
         )
         
         try {
@@ -119,6 +127,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       logger.info('[FETCH_PROFILE_END] Success. Profile fetched.', data)
+      
+      // 🚀 CACHE: Store successful profile fetch
+      setProfileCache(prev => new Map(prev.set(userId, {
+        profile: data,
+        timestamp: Date.now()
+      })))
+      
       return data
     } catch (error) {
       if (error instanceof Error && error.message.includes('timeout')) {

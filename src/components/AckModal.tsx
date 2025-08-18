@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Clock } from 'lucide-react'
-import type { Incident } from '@/lib/supabaseClient'
+import type { Incident } from '../interfaces/database'
 import { AckModalProps } from '../interfaces/components'
 
 export function AckModal({ incident, isOpen, onOpenChange }: AckModalProps) {

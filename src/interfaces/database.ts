@@ -10,9 +10,12 @@ export interface Driver {
 
 export interface Sticker {
   id: string
-  driver_id: string
+  driver_id?: string // Legacy compatibility  
+  owner_id?: string // New standard
   token: string
   plate?: string
+  style?: string
+  status?: 'active' | 'inactive'
   created_at: string
   driver?: Driver
 }

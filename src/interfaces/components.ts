@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import { Incident } from '../lib/supabaseClient'
+import type { Incident } from './database'
 
 // Animation Components
 export type ParticlePreset = 
