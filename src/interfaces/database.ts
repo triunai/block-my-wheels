@@ -1,15 +1,20 @@
 // Database Entity Interfaces
 
+export interface Driver {
+  id: string
+  user_id: string
+  phone: string
+  wa_id?: string
+  created_at: string
+}
+
 export interface Sticker {
   id: string
+  driver_id: string
   token: string
-  plate: string
-  style: string
-  status: 'active' | 'inactive'
-  owner_id: string
-  driver_id?: string // Legacy compatibility
+  plate?: string
   created_at: string
-  updated_at?: string
+  driver?: Driver
 }
 
 export interface Incident {
@@ -29,12 +34,6 @@ export interface Incident {
 export interface ScanPageData {
   sticker: Sticker
   incident: Incident | null
-}
-
-export interface Driver {
-  id: string
-  phone: string
-  wa_id?: string
 }
 
 // Database function return types
