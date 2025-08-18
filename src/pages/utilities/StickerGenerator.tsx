@@ -66,7 +66,7 @@ export function StickerGenerator() {
   const { user } = useAuth()
   const createMutation = useCreateSticker()
   const batchCreateMutation = useBatchCreateStickers()
-  const { data: userStickers, refetch: refetchStickers } = useUserStickers(user?.id)
+  const { data: userStickers, error: stickersError, isLoading: stickersLoading, refetch: refetchStickers } = useUserStickers(user?.id)
 
   // Generate preview sticker in real-time
   const generatePreview = useCallback(async () => {
@@ -689,7 +689,26 @@ export function StickerGenerator() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {userStickers && userStickers.length > 0 ? (
+                {stickersLoading ? (
+                  <div className="text-center text-gray-500 py-8">
+                    <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+                    <p>Loading your stickers...</p>
+                  </div>
+                ) : stickersError ? (
+                  <div className="text-center text-red-500 py-8">
+                    <div className="text-2xl mb-2">⚠️</div>
+                    <p className="font-medium">Failed to load stickers</p>
+                    <p className="text-sm mt-1">Error: {stickersError.message}</p>
+                    <Button 
+                      onClick={() => refetchStickers()} 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-3"
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                ) : userStickers && userStickers.length > 0 ? (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {userStickers.map((sticker) => (
                       <div key={sticker.id} className="border rounded-lg p-4 space-y-3">

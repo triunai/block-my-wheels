@@ -388,6 +388,30 @@ export const rpcFunctions = {
     }
   },
 
+  // Cleanup old incidents to prevent performance degradation
+  cleanupOldIncidents: async () => {
+    if (isTemplateMode) {
+      logger.info(`[TEMPLATE MODE] Skipping incident cleanup`)
+      return { success: true, message: 'Cleanup skipped in template mode' }
+    }
+
+    try {
+      logger.info(`[CLEANUP_INCIDENTS] Starting automatic cleanup...`)
+      const { data, error } = await supabase.rpc('cleanup_old_incidents')
+      
+      if (error) {
+        logger.error(`[CLEANUP_INCIDENTS] Error:`, error)
+        return { success: false, error: error.message }
+      }
+      
+      logger.info(`[CLEANUP_INCIDENTS] Completed:`, data)
+      return data
+    } catch (error) {
+      logger.error(`[CLEANUP_INCIDENTS] Exception:`, error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  },
+
   // Template-specific function for getting driver incidents
   fetchDriverIncidents: async (driverId: string): Promise<Incident[]> => {
     if (isTemplateMode) {

@@ -56,7 +56,7 @@ export function ScanPage({ token }: ScanPageProps) {
         <FadeawayCars 
           carCount={4}
           speed="slow"
-          density="light"
+          density="heavy"
           className="opacity-20 dark:opacity-10"
         />
         <Card className="max-w-md w-full relative z-10">

@@ -1,12 +1,32 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase, rpcFunctions } from '../supabaseClient'
-import type { Incident, ScanPageData } from '../interfaces/database'
+import { Incident, ScanPageData } from '../../interfaces/database'
 
 export const useScanPageData = (token: string) => {
   return useQuery({
     queryKey: ['scanPage', token],
-    queryFn: () => rpcFunctions.fetchScanPage(token),
+    queryFn: async () => {
+      // Run periodic cleanup before fetching scan data
+      const lastCleanup = localStorage.getItem('lastIncidentCleanup')
+      const now = Date.now()
+      const oneHour = 60 * 60 * 1000
+      
+      if (!lastCleanup || now - parseInt(lastCleanup) > oneHour) {
+        try {
+          console.log('[CLEANUP] Running incident cleanup before scan...')
+          const cleanupResult = await rpcFunctions.cleanupOldIncidents()
+          if (cleanupResult.success) {
+            localStorage.setItem('lastIncidentCleanup', now.toString())
+            console.log('[CLEANUP] Cleanup completed:', cleanupResult)
+          }
+        } catch (error) {
+          console.warn('[CLEANUP] Cleanup failed, continuing with scan:', error)
+        }
+      }
+      
+      return rpcFunctions.fetchScanPage(token)
+    },
     enabled: !!token,
     staleTime: 2 * 60 * 1000, // 2 minutes cache (longer for scan pages)
     gcTime: 10 * 60 * 1000, // 10 minutes garbage collection (renamed from cacheTime)
@@ -64,21 +84,34 @@ export const useUserStickers = (userId?: string) => {
     queryFn: async () => {
       if (!userId) return []
       
-      const { data, error } = await supabase
-        .from('stickers')
-        .select('id, token, plate, style, status, created_at') // Only select needed fields
-        .eq('owner_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(50) // Limit to last 50 stickers for performance
-      
-      if (error) throw error
-      return data
+      // 🚀 OPTIMIZED: Clean and fast stickers query
+      try {
+        const { data, error } = await supabase
+          .from('stickers')
+          .select('id, token, plate, style, status, created_at')
+          .eq('owner_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(20)
+        
+        if (error) {
+          console.error('[STICKERS] Database error:', error)
+          throw error
+        }
+        
+        console.log(`[STICKERS] Successfully fetched ${data?.length || 0} stickers for user`)
+        return data || []
+      } catch (error) {
+        console.error('[STICKERS] Query failed:', error)
+        throw error
+      }
     },
     enabled: !!userId,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    gcTime: 15 * 60 * 1000, // 15 minutes garbage collection
+    staleTime: 10 * 60 * 1000, // 10 minutes cache (longer for better performance)
+    gcTime: 30 * 60 * 1000, // 30 minutes garbage collection
     refetchOnWindowFocus: false,
+    refetchOnMount: false, // Don't refetch on mount if data exists
     retry: 1,
+    retryDelay: 1000,
   })
 }
 

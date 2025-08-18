@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User, AuthError, Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabaseClient'
+import { supabase, rpcFunctions } from '../lib/supabaseClient'
 import { logger } from '../lib/utils'
 import { UserProfile, AuthContextType, AuthProviderProps } from '../interfaces/auth'
 import { sanitizeAndValidate, phoneUtils } from '../lib/validation'
@@ -83,25 +83,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       logger.info('[FETCH_PROFILE] Querying Supabase for profile...')
       
-      // Increase timeout to 15 seconds and add retry logic
-      const executeQuery = async (attempt: number = 1): Promise<{data: unknown, error: unknown}> => {
+      // 🚀 OPTIMIZED: Faster timeout with immediate fallback strategy
+      const executeQuery = async (): Promise<{data: unknown, error: unknown}> => {
+        // Try a quick query first (3 seconds timeout)
         const profileQuery = supabase
           .from('user_profiles')
           .select('*')
           .eq('id', userId)
           .single()
           
-        const timeoutPromise = new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error(`Profile query timeout after 8 seconds (attempt ${attempt})`)), 8000)
+        const quickTimeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Profile query timeout after 3 seconds')), 3000)
         )
         
         try {
-          return await Promise.race([profileQuery, timeoutPromise])
+          logger.info('[FETCH_PROFILE] Attempting quick profile fetch (3s timeout)...')
+          return await Promise.race([profileQuery, quickTimeoutPromise])
         } catch (error) {
-          if (error instanceof Error && error.message.includes('timeout') && attempt < 2) {
-            logger.warn(`[FETCH_PROFILE] Attempt ${attempt} timed out, retrying...`)
-            await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second
-            return executeQuery(attempt + 1)
+          if (error instanceof Error && error.message.includes('timeout')) {
+            logger.warn('[FETCH_PROFILE] Quick fetch timed out, trying fallback strategy...')
+            
+            // Fallback: Try without timeout but with abortController
+            const controller = new AbortController()
+            const fallbackTimeout = setTimeout(() => controller.abort(), 10000) // 10s max
+            
+            try {
+              const fallbackQuery = supabase
+                .from('user_profiles')
+                .select('*')
+                .eq('id', userId)
+                .single()
+                .abortSignal(controller.signal)
+              
+              const result = await fallbackQuery
+              clearTimeout(fallbackTimeout)
+              return result
+            } catch (fallbackError) {
+              clearTimeout(fallbackTimeout)
+              logger.warn('[FETCH_PROFILE] Fallback also failed, will continue without profile')
+              throw fallbackError
+            }
           }
           throw error
         }
@@ -632,8 +653,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               if (session?.user) {
                 logger.info('[AUTH_EVENT] Setting user and fetching profile')
                 setUser(session.user)
-                const userProfile = await fetchProfile(session.user.id)
-                setProfile(userProfile)
+                
+                // 🚀 NON-BLOCKING: Fetch profile in background, don't block the UI
+                fetchProfile(session.user.id)
+                  .then(userProfile => {
+                    logger.info('[AUTH_EVENT] Background profile fetch completed')
+                    setProfile(userProfile)
+                  })
+                  .catch(error => {
+                    logger.warn('[AUTH_EVENT] Background profile fetch failed, app continues without profile:', error)
+                    setProfile(null)
+                  })
               } else {
                 logger.info('[AUTH_EVENT] No session/user - clearing state')
                 setUser(null)
