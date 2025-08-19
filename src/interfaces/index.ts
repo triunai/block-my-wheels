@@ -6,7 +6,11 @@ export type {
   Sticker,
   Incident,
   ScanPageData,
-  RpcResponse
+  RpcResponse,
+  WhatsAppSession,
+  WhatsAppDeliveryStatus,
+  DeliveryMethod,
+  WhatsAppSessionStatus
 } from './database'
 
 // Authentication interfaces

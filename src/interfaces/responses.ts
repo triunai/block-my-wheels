@@ -94,10 +94,22 @@ export interface WhatsAppMessageRequest {
   }
 }
 
-// n8n Webhook Response (Back to Supabase)
+// n8n Webhook Response (Back to Supabase) - Enhanced for session management
 export interface N8nWebhookResponse {
   success: boolean
+  status: 'success' | 'failed' | 'partial'
   message_id?: string
-  delivery_status?: 'sent' | 'delivered' | 'failed'
+  delivery_method: 'direct' | 'template' | 'escalation' | 'failed'
+  session_status: 'active' | 'expired' | 'unknown'
+  escalation_level: number
+  template_used?: string
+  user_response?: string
+  processing_time_ms?: number
+  timestamp: string
   error?: string
+  debug_info?: {
+    phone_number_valid: boolean
+    template_approved: boolean
+    session_last_seen?: string
+  }
 }
